@@ -1,0 +1,182 @@
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Client } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+
+interface ClientFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  client?: Client;
+  onSave: (client: Omit<Client, 'id' | 'createdAt'>) => void;
+}
+
+export const ClientForm: React.FC<ClientFormProps> = ({
+  open,
+  onOpenChange,
+  client,
+  onSave,
+}) => {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    name: client?.name || '',
+    cpf: client?.cpf || '',
+    dateOfBirth: client?.dateOfBirth || '',
+    phone: client?.phone || '',
+    email: client?.email || '',
+    address: client?.address || '',
+    allergies: client?.allergies || '',
+    observations: client?.observations || '',
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.cpf || !formData.dateOfBirth || !formData.phone) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    onSave(formData);
+    onOpenChange(false);
+    setFormData({
+      name: '',
+      cpf: '',
+      dateOfBirth: '',
+      phone: '',
+      email: '',
+      address: '',
+      allergies: '',
+      observations: '',
+    });
+    
+    toast({
+      title: client ? "Cliente atualizado" : "Cliente cadastrado",
+      description: client ? "As informações foram atualizadas com sucesso." : "Novo cliente foi cadastrado com sucesso.",
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{client ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+          <DialogDescription>
+            {client ? 'Atualize as informações do cliente.' : 'Cadastre um novo cliente no sistema.'}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Nome Completo *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Digite o nome completo"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="cpf">CPF *</Label>
+              <Input
+                id="cpf"
+                value={formData.cpf}
+                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                placeholder="000.000.000-00"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="dateOfBirth">Data de Nascimento *</Label>
+              <Input
+                id="dateOfBirth"
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="phone">Telefone *</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="(00) 00000-0000"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="address">Endereço</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Rua, número, bairro"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="allergies">Alergias</Label>
+            <Textarea
+              id="allergies"
+              value={formData.allergies}
+              onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+              placeholder="Descreva alergias conhecidas"
+              rows={2}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="observations">Observações</Label>
+            <Textarea
+              id="observations"
+              value={formData.observations}
+              onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+              placeholder="Observações adicionais"
+              rows={2}
+            />
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="medical-gradient text-white">
+              {client ? 'Atualizar' : 'Cadastrar'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
