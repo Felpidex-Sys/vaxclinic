@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { Shield, Syringe } from 'lucide-react';
 
-export const Login = () => {
+export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -33,255 +37,73 @@ export const Login = () => {
   };
 
   return (
-    <>
-      <style>
-        {`
-          .login-container {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #2c4156 0%, #39586d 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            font-family: system-ui, -apple-system, sans-serif;
-          }
-          
-          .login-box {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-            position: relative;
-            overflow: hidden;
-          }
-          
-          .login-header {
-            text-align: center;
-            margin-bottom: 30px;
-          }
-          
-          .login-logo {
-            width: 60px;
-            height: 60px;
-            background: #39586d;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 24px;
-            color: white;
-          }
-          
-          .login-title {
-            font-size: 28px;
-            font-weight: bold;
-            color: #2c4156;
-            margin: 0 0 8px;
-            letter-spacing: -0.5px;
-          }
-          
-          .login-subtitle {
-            font-size: 14px;
-            color: #6b7280;
-            margin: 0;
-          }
-          
-          .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-          }
-          
-          .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-          }
-          
-          .input-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: #374151;
-          }
-          
-          .input-wrapper {
-            position: relative;
-          }
-          
-          .input-field {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            outline: none;
-            box-sizing: border-box;
-          }
-          
-          .input-field:focus {
-            border-color: #39586d;
-            box-shadow: 0 0 0 3px rgba(57, 88, 109, 0.1);
-          }
-          
-          .input-field:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-          }
-          
-          .password-field {
-            padding-right: 50px;
-          }
-          
-          .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #6b7280;
-            font-size: 14px;
-            padding: 4px;
-          }
-          
-          .login-button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #39586d, #7f99b2);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 10px;
-          }
-          
-          .login-button:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 25px rgba(57, 88, 109, 0.3);
-          }
-          
-          .login-button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-          }
-          
-          .test-accounts {
-            margin-top: 25px;
-            padding: 20px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-          }
-          
-          .test-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #475569;
-            margin-bottom: 12px;
-          }
-          
-          .test-list {
-            font-size: 12px;
-            color: #64748b;
-            line-height: 1.6;
-          }
-          
-          .test-item {
-            margin-bottom: 4px;
-          }
-          
-          .test-strong {
-            font-weight: 600;
-            color: #374151;
-          }
-        `}
-      </style>
-      
-      <div className="login-container">
-        <div className="login-box">
-          <div className="login-header">
-            <div className="login-logo">💉</div>
-            <h1 className="login-title">VixClinic</h1>
-            <p className="login-subtitle">Sistema de Gestão de Vacinação</p>
+    <div className="min-h-screen bg-gradient-to-br from-medical-blue to-medical-accent flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
+            <Syringe className="w-8 h-8 text-white" />
           </div>
+          <h1 className="text-3xl font-bold text-white mb-2">VaxClinic</h1>
+          <p className="text-white/80">Sistema de Gestão de Vacinação</p>
+        </div>
 
-          <form className="login-form" onSubmit={handleSubmit}>
-            <div className="input-group">
-              <label className="input-label" htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                className="input-field"
-              />
-            </div>
-            
-            <div className="input-group">
-              <label className="input-label" htmlFor="password">
-                Senha
-              </label>
-              <div className="input-wrapper">
-                <input
+        <Card className="card-shadow">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2">
+              <Shield className="w-5 h-5 text-medical-blue" />
+              Acesso ao Sistema
+            </CardTitle>
+            <CardDescription>
+              Entre com suas credenciais para acessar o sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="input-field password-field"
                 />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </button>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full medical-gradient text-white hover:opacity-90"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </form>
+
+            <div className="mt-6 p-4 bg-medical-gray/20 rounded-lg">
+              <p className="text-sm font-medium mb-2">Contas de teste:</p>
+              <div className="text-xs space-y-1 text-muted-foreground">
+                <p><strong>Admin:</strong> admin@vaxclinic.com</p>
+                <p><strong>Funcionário:</strong> funcionario@vaxclinic.com</p>
+                <p><strong>Vacinador:</strong> vacinador@vaxclinic.com</p>
+                <p><strong>Senha:</strong> 123456</p>
               </div>
             </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="login-button"
-            >
-              {isLoading ? '⏳ Entrando...' : '🚀 Entrar'}
-            </button>
-          </form>
-
-          <div className="test-accounts">
-            <p className="test-title">🔑 Contas de teste:</p>
-            <div className="test-list">
-              <div className="test-item">
-                <span className="test-strong">Admin:</span> admin@vaxclinic.com
-              </div>
-              <div className="test-item">
-                <span className="test-strong">Funcionário:</span> funcionario@vaxclinic.com
-              </div>
-              <div className="test-item">
-                <span className="test-strong">Vacinador:</span> vacinador@vaxclinic.com
-              </div>
-              <div className="test-item">
-                <span className="test-strong">Senha:</span> 123456
-              </div>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </>
+    </div>
   );
 };
