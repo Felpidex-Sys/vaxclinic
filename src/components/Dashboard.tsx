@@ -13,7 +13,7 @@ import {
   Activity
 } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { DashboardStats, Client, User, Vaccine, VaccineBatch, VaccinationRecord } from '@/types';
+import { DashboardStats, Client, User, Vaccine, VaccineBatch, VaccinationRecord, Agendamento } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,6 +24,7 @@ export const Dashboard: React.FC = () => {
   const [employees] = useLocalStorage<User[]>('vaxclinic_employees', []);
   const [vaccines] = useLocalStorage<Vaccine[]>('vaxclinic_vaccines', []);
   const [batches] = useLocalStorage<VaccineBatch[]>('vaxclinic_batches', []);
+  const [agendamentos] = useLocalStorage<Agendamento[]>('vixclinic_agendamentos', []);
   const [vaccinations] = useLocalStorage<VaccinationRecord[]>('vaxclinic_vaccinations', []);
 
   const [stats, setStats] = useState<DashboardStats>({
@@ -101,7 +102,7 @@ export const Dashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-medical-blue">
-            Bem-vindo, {user?.name?.split(' ')[0]}!
+            Bem-vindo ao VixClinic, {user?.name?.split(' ')[0]}!
           </h1>
           <p className="text-muted-foreground">
             Visão geral do sistema de vacinação
@@ -283,10 +284,10 @@ export const Dashboard: React.FC = () => {
             <Button
               variant="outline"
               className="h-20 flex flex-col gap-2"
-              onClick={() => navigate('/vacinas')}
+              onClick={() => navigate('/agendamentos')}
             >
               <Calendar className="w-6 h-6 text-medical-blue" />
-              <span className="text-sm">Gerenciar Lotes</span>
+              <span className="text-sm">Agendamentos</span>
             </Button>
             
             <Button

@@ -11,6 +11,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { Funcionarios } from "@/pages/Funcionarios";
 import { Clientes } from "@/pages/Clientes";
 import { Vacinas } from "@/pages/Vacinas";
+import { Agendamentos } from "@/pages/Agendamentos";
 import { Relatorios } from "@/pages/Relatorios";
 import { Permissoes } from "@/pages/Permissoes";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ const AppContent = () => {
         <Route path="/funcionarios" element={<Funcionarios />} />
         <Route path="/clientes" element={<Clientes />} />
         <Route path="/vacinas" element={<Vacinas />} />
+        <Route path="/agendamentos" element={<Agendamentos />} />
         <Route path="/relatorios" element={<Relatorios />} />
         <Route path="/permissoes" element={<Permissoes />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

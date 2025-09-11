@@ -18,6 +18,7 @@ import {
   Syringe,
   FileText,
   Shield,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -45,6 +46,12 @@ const navigationItems = [
     url: '/vacinas',
     icon: Syringe,
     permissions: ['all', 'read_vaccines', 'write_vaccines', 'apply_vaccines'],
+  },
+  {
+    title: 'Agendamentos',
+    url: '/agendamentos',
+    icon: Calendar,
+    permissions: ['all', 'read_appointments', 'write_appointments'],
   },
   {
     title: 'Relatórios',
@@ -98,7 +105,7 @@ export const AppSidebar: React.FC = () => {
             </div>
             {!collapsed && (
               <div>
-                <h2 className="font-bold text-sidebar-foreground">VaxClinic</h2>
+                <h2 className="font-bold text-sidebar-foreground">VixClinic</h2>
                 <p className="text-xs text-sidebar-foreground/70">Sistema de Vacinação</p>
               </div>
             )}
