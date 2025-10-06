@@ -143,14 +143,9 @@ export const VaccineForm: React.FC<VaccineFormProps> = ({
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="COVID">COVID-19</SelectItem>
-                <SelectItem value="GRIPE">Gripe</SelectItem>
-                <SelectItem value="HEPATITE">Hepatite</SelectItem>
-                <SelectItem value="SARAMPO">Sarampo</SelectItem>
-                <SelectItem value="FEBRE_AMARELA">Febre Amarela</SelectItem>
-                <SelectItem value="TETANO">Tétano</SelectItem>
-                <SelectItem value="POLIO">Poliomielite</SelectItem>
-                <SelectItem value="OUTRAS">Outras</SelectItem>
+                <SelectItem value="VIRAL">Viral</SelectItem>
+                <SelectItem value="BACTERIANA">Bacteriana</SelectItem>
+                <SelectItem value="OUTRA">Outra</SelectItem>
               </SelectContent>
             </Select>
             {errors.categoria && (
