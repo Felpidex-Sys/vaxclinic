@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,53 +12,58 @@ import {
   Shield,
   Users
 } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { User } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { EmployeeForm } from '@/components/forms/EmployeeForm';
 import { useToast } from '@/hooks/use-toast';
 import { displayCPF } from '@/lib/validations';
-
-const mockEmployees: User[] = [
-  {
-    id: '1',
-    name: 'Dr. Maria Silva',
-    email: 'admin@vixclinic.com',
-    cpf: '12345678900', // Apenas números, sem formatação
-    role: 'admin',
-    permissions: ['all'],
-    active: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'João Santos',
-    email: 'funcionario@vixclinic.com',
-    cpf: '98765432100',
-    role: 'funcionario',
-    permissions: ['read_clients', 'write_clients', 'read_vaccines'],
-    active: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Ana Costa',
-    email: 'vacinador@vixclinic.com',
-    cpf: '45678912300',
-    role: 'vacinador',
-    permissions: ['read_clients', 'apply_vaccines', 'read_vaccines'],
-    active: true,
-    createdAt: new Date().toISOString(),
-  },
-];
+import { supabase } from '@/integrations/supabase/client';
 
 export const Funcionarios: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [employees, setEmployees] = useLocalStorage<User[]>('vixclinic_employees', mockEmployees);
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<User | undefined>();
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('funcionario')
+        .select('*')
+        .order('nomecompleto', { ascending: true });
+
+      if (error) throw error;
+
+      const mappedEmployees: User[] = (data || []).map(func => ({
+        id: func.idfuncionario.toString(),
+        name: func.nomecompleto,
+        email: func.email,
+        cpf: func.cpf,
+        role: (func.cargo || 'funcionario') as 'admin' | 'funcionario' | 'vacinador',
+        permissions: [],
+        active: func.status === 'ATIVO',
+        createdAt: new Date().toISOString(),
+      }));
+
+      setEmployees(mappedEmployees);
+    } catch (error) {
+      console.error('Erro ao buscar funcionários:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os funcionários.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,26 +89,56 @@ export const Funcionarios: React.FC = () => {
     }
   };
 
-  const handleSaveEmployee = (employeeData: Omit<User, 'id' | 'createdAt'>) => {
-    if (editingEmployee) {
-      // Update existing employee
-      const updatedEmployees = employees.map(employee =>
-        employee.id === editingEmployee.id
-          ? { ...employee, ...employeeData }
-          : employee
-      );
-      setEmployees(updatedEmployees);
+  const handleSaveEmployee = async (employeeData: Omit<User, 'id' | 'createdAt'>) => {
+    try {
+      if (editingEmployee) {
+        const { error } = await supabase
+          .from('funcionario')
+          .update({
+            nomecompleto: employeeData.name,
+            email: employeeData.email,
+            cargo: employeeData.role,
+            status: employeeData.active ? 'ATIVO' : 'INATIVO',
+          })
+          .eq('idfuncionario', parseInt(editingEmployee.id));
+
+        if (error) throw error;
+
+        toast({
+          title: 'Funcionário atualizado',
+          description: 'Os dados foram atualizados com sucesso.',
+        });
+      } else {
+        const { error } = await supabase
+          .from('funcionario')
+          .insert({
+            cpf: employeeData.cpf,
+            nomecompleto: employeeData.name,
+            email: employeeData.email,
+            cargo: employeeData.role,
+            senha: 'senha123',
+            status: 'ATIVO',
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: 'Funcionário cadastrado',
+          description: 'O funcionário foi adicionado com sucesso.',
+        });
+      }
+
       setEditingEmployee(undefined);
-    } else {
-      // Add new employee
-      const newEmployee: User = {
-        ...employeeData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-      };
-      setEmployees([...employees, newEmployee]);
+      setShowForm(false);
+      fetchEmployees();
+    } catch (error: any) {
+      console.error('Erro ao salvar funcionário:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível salvar o funcionário.',
+        variant: 'destructive',
+      });
     }
-    setShowForm(false);
   };
 
   const handleEditEmployee = (employee: User) => {
@@ -111,14 +146,30 @@ export const Funcionarios: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleDeleteEmployee = (employee: User) => {
+  const handleDeleteEmployee = async (employee: User) => {
     if (confirm(`Tem certeza que deseja excluir o funcionário ${employee.name}?`)) {
-      const updatedEmployees = employees.filter(e => e.id !== employee.id);
-      setEmployees(updatedEmployees);
-      toast({
-        title: "Funcionário excluído",
-        description: `${employee.name} foi removido do sistema.`,
-      });
+      try {
+        const { error } = await supabase
+          .from('funcionario')
+          .delete()
+          .eq('idfuncionario', parseInt(employee.id));
+
+        if (error) throw error;
+
+        toast({
+          title: 'Funcionário excluído',
+          description: `${employee.name} foi removido do sistema.`,
+        });
+
+        fetchEmployees();
+      } catch (error: any) {
+        console.error('Erro ao excluir funcionário:', error);
+        toast({
+          title: 'Erro',
+          description: error.message || 'Não foi possível excluir o funcionário.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -214,7 +265,11 @@ export const Funcionarios: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredEmployees.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Carregando funcionários...</p>
+              </div>
+            ) : filteredEmployees.length === 0 ? (
               <div className="text-center py-8">
                 <UserCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">Nenhum funcionário encontrado</p>

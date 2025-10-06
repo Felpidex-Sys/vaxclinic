@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,87 +15,126 @@ import {
   Calendar,
   TrendingUp
 } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Vaccine, VaccineBatch, Client, User, VaccinationRecord } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { VaccineApplicationForm } from '@/components/forms/VaccineApplicationForm';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-
-const mockVaccines: Vaccine[] = [
-  {
-    id: '1',
-    name: 'Coronavac',
-    manufacturer: 'Sinovac',
-    description: 'Vacina inativada contra COVID-19',
-    targetDisease: 'COVID-19',
-    dosesRequired: 2,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Pfizer-BioNTech',
-    manufacturer: 'Pfizer',
-    description: 'Vacina de mRNA contra COVID-19',
-    targetDisease: 'COVID-19',
-    dosesRequired: 2,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Tríplice Viral',
-    manufacturer: 'Instituto Butantan',
-    description: 'Vacina contra sarampo, caxumba e rubéola',
-    targetDisease: 'Sarampo, Caxumba, Rubéola',
-    dosesRequired: 2,
-    createdAt: new Date().toISOString(),
-  },
-];
-
-const mockBatches: VaccineBatch[] = [
-  {
-    id: '1',
-    vaccineId: '1',
-    batchNumber: 'COV2024001',
-    quantity: 100,
-    remainingQuantity: 75,
-    manufacturingDate: '2024-01-15',
-    expirationDate: '2024-12-15',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    vaccineId: '2',
-    batchNumber: 'PFZ2024002',
-    quantity: 150,
-    remainingQuantity: 120,
-    manufacturingDate: '2024-02-10',
-    expirationDate: '2024-11-10',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    vaccineId: '3',
-    batchNumber: 'TRI2024003',
-    quantity: 80,
-    remainingQuantity: 15,
-    manufacturingDate: '2024-01-20',
-    expirationDate: '2025-01-20',
-    createdAt: new Date().toISOString(),
-  },
-];
+import { supabase } from '@/integrations/supabase/client';
 
 export const Vacinas: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [vaccines, setVaccines] = useLocalStorage<Vaccine[]>('vixclinic_vaccines', mockVaccines);
-  const [batches, setBatches] = useLocalStorage<VaccineBatch[]>('vixclinic_batches', mockBatches);
-  const [clients] = useLocalStorage<Client[]>('vixclinic_clients', []);
-  const [employees] = useLocalStorage<User[]>('vixclinic_employees', []);
-  const [vaccinations, setVaccinations] = useLocalStorage<VaccinationRecord[]>('vixclinic_vaccinations', []);
+  const [vaccines, setVaccines] = useState<Vaccine[]>([]);
+  const [batches, setBatches] = useState<VaccineBatch[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      // Fetch vaccines
+      const { data: vacinasData, error: vacinasError } = await supabase
+        .from('vacina')
+        .select('*')
+        .order('nome', { ascending: true });
+
+      if (vacinasError) throw vacinasError;
+
+      const mappedVaccines: Vaccine[] = (vacinasData || []).map(vac => ({
+        id: vac.idvacina.toString(),
+        name: vac.nome,
+        manufacturer: vac.fabricante || '',
+        description: vac.descricao || '',
+        targetDisease: vac.categoria || '',
+        dosesRequired: vac.quantidadedoses || 1,
+        createdAt: new Date().toISOString(),
+      }));
+
+      setVaccines(mappedVaccines);
+
+      // Fetch batches
+      const { data: lotesData, error: lotesError } = await supabase
+        .from('lote')
+        .select('*')
+        .order('datavalidade', { ascending: true });
+
+      if (lotesError) throw lotesError;
+
+      const mappedBatches: VaccineBatch[] = (lotesData || []).map(lote => ({
+        id: lote.numlote.toString(),
+        vaccineId: lote.vacina_idvacina.toString(),
+        batchNumber: lote.codigolote,
+        quantity: lote.quantidadeinicial,
+        remainingQuantity: lote.quantidadedisponivel,
+        manufacturingDate: '',
+        expirationDate: lote.datavalidade,
+        createdAt: new Date().toISOString(),
+      }));
+
+      setBatches(mappedBatches);
+
+      // Fetch clients
+      const { data: clientesData, error: clientesError } = await supabase
+        .from('cliente')
+        .select('*');
+
+      if (clientesError) throw clientesError;
+
+      const mappedClients: Client[] = (clientesData || []).map(cliente => ({
+        id: cliente.cpf,
+        name: cliente.nomecompleto,
+        cpf: cliente.cpf,
+        dateOfBirth: cliente.datanasc || '',
+        phone: cliente.telefone || '',
+        email: cliente.email || '',
+        address: '',
+        allergies: cliente.alergias || '',
+        observations: cliente.observacoes || '',
+        createdAt: new Date().toISOString(),
+      }));
+
+      setClients(mappedClients);
+
+      // Fetch employees
+      const { data: funcionariosData, error: funcionariosError } = await supabase
+        .from('funcionario')
+        .select('*');
+
+      if (funcionariosError) throw funcionariosError;
+
+      const mappedEmployees: User[] = (funcionariosData || []).map(func => ({
+        id: func.idfuncionario.toString(),
+        name: func.nomecompleto,
+        email: func.email,
+        cpf: func.cpf,
+        role: (func.cargo || 'funcionario') as 'admin' | 'funcionario' | 'vacinador',
+        permissions: [],
+        active: func.status === 'ATIVO',
+        createdAt: new Date().toISOString(),
+      }));
+
+      setEmployees(mappedEmployees);
+
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os dados.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredVaccines = vaccines.filter(vaccine =>
     vaccine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -142,6 +181,43 @@ export const Vacinas: React.FC = () => {
     );
     setBatches(updatedBatches);
   };
+
+  const handleDeleteVaccine = async (vaccine: Vaccine) => {
+    if (confirm(`Tem certeza que deseja excluir a vacina ${vaccine.name}?`)) {
+      try {
+        const { error } = await supabase
+          .from('vacina')
+          .delete()
+          .eq('idvacina', parseInt(vaccine.id));
+
+        if (error) throw error;
+
+        toast({ 
+          title: "Vacina excluída", 
+          description: "A vacina foi removida do sistema." 
+        });
+
+        fetchData();
+      } catch (error: any) {
+        console.error('Erro ao excluir vacina:', error);
+        toast({
+          title: 'Erro',
+          description: error.message || 'Não foi possível excluir a vacina.',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -328,13 +404,7 @@ export const Vacinas: React.FC = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                if (confirm(`Tem certeza que deseja excluir a vacina ${vaccine.name}?`)) {
-                                  const updatedVaccines = vaccines.filter(v => v.id !== vaccine.id);
-                                  setVaccines(updatedVaccines);
-                                  toast({ title: "Vacina excluída", description: "A vacina foi removida do sistema." });
-                                }
-                              }}
+                              onClick={() => handleDeleteVaccine(vaccine)}
                               title="Excluir vacina"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -372,9 +442,6 @@ export const Vacinas: React.FC = () => {
                       <div>
                         <h3 className="font-semibold">{vaccine?.name}</h3>
                         <p className="text-sm text-muted-foreground">Lote: {batch.batchNumber}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Fabricação: {new Date(batch.manufacturingDate).toLocaleDateString('pt-BR')}
-                        </p>
                       </div>
                       
                       <div className="text-right">

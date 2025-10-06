@@ -12,20 +12,19 @@ import {
   TrendingUp,
   Activity
 } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { DashboardStats, Client, User, Vaccine, VaccineBatch, VaccinationRecord, Agendamento } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [clients] = useLocalStorage<Client[]>('vixclinic_clients', []);
-  const [employees] = useLocalStorage<User[]>('vixclinic_employees', []);
-  const [vaccines] = useLocalStorage<Vaccine[]>('vixclinic_vaccines', []);
-  const [batches] = useLocalStorage<VaccineBatch[]>('vixclinic_batches', []);
-  const [agendamentos] = useLocalStorage<Agendamento[]>('vixclinic_agendamentos', []);
-  const [vaccinations] = useLocalStorage<VaccinationRecord[]>('vixclinic_vaccinations', []);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [vaccines, setVaccines] = useState<Vaccine[]>([]);
+  const [batches, setBatches] = useState<VaccineBatch[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [stats, setStats] = useState<DashboardStats>({
     totalClients: 0,
@@ -37,32 +36,105 @@ export const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 30); // 30 days ahead
-    
-    const vaccinationsToday = vaccinations.filter(v => 
-      v.applicationDate.split('T')[0] === today
-    ).length;
+    fetchData();
+  }, []);
 
-    const expiringBatches = batches.filter(batch => {
-      const expirationDate = new Date(batch.expirationDate);
-      return expirationDate <= tomorrow && batch.remainingQuantity > 0;
-    }).slice(0, 5);
+  const fetchData = async () => {
+    try {
+      // Fetch clients
+      const { data: clientesData } = await supabase
+        .from('cliente')
+        .select('*');
 
-    const recentVaccinations = vaccinations
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
+      const mappedClients: Client[] = (clientesData || []).map(cliente => ({
+        id: cliente.cpf,
+        name: cliente.nomecompleto,
+        cpf: cliente.cpf,
+        dateOfBirth: cliente.datanasc || '',
+        phone: cliente.telefone || '',
+        email: cliente.email || '',
+        address: '',
+        allergies: cliente.alergias || '',
+        observations: cliente.observacoes || '',
+        createdAt: new Date().toISOString(),
+      }));
 
-    setStats({
-      totalClients: clients.length,
-      totalEmployees: employees.length,
-      totalVaccines: vaccines.length,
-      vaccinationsToday,
-      expiringBatches,
-      recentVaccinations
-    });
-  }, [clients, employees, vaccines, batches, vaccinations]);
+      // Fetch employees
+      const { data: funcionariosData } = await supabase
+        .from('funcionario')
+        .select('*');
+
+      const mappedEmployees: User[] = (funcionariosData || []).map(func => ({
+        id: func.idfuncionario.toString(),
+        name: func.nomecompleto,
+        email: func.email,
+        cpf: func.cpf,
+        role: (func.cargo || 'funcionario') as 'admin' | 'funcionario' | 'vacinador',
+        permissions: [],
+        active: func.status === 'ATIVO',
+        createdAt: new Date().toISOString(),
+      }));
+
+      // Fetch vaccines
+      const { data: vacinasData } = await supabase
+        .from('vacina')
+        .select('*');
+
+      const mappedVaccines: Vaccine[] = (vacinasData || []).map(vac => ({
+        id: vac.idvacina.toString(),
+        name: vac.nome,
+        manufacturer: vac.fabricante || '',
+        description: vac.descricao || '',
+        targetDisease: vac.categoria || '',
+        dosesRequired: vac.quantidadedoses || 1,
+        createdAt: new Date().toISOString(),
+      }));
+
+      // Fetch batches
+      const { data: lotesData } = await supabase
+        .from('lote')
+        .select('*')
+        .order('datavalidade', { ascending: true });
+
+      const mappedBatches: VaccineBatch[] = (lotesData || []).map(lote => ({
+        id: lote.numlote.toString(),
+        vaccineId: lote.vacina_idvacina.toString(),
+        batchNumber: lote.codigolote,
+        quantity: lote.quantidadeinicial,
+        remainingQuantity: lote.quantidadedisponivel,
+        manufacturingDate: '',
+        expirationDate: lote.datavalidade,
+        createdAt: new Date().toISOString(),
+      }));
+
+      setClients(mappedClients);
+      setEmployees(mappedEmployees);
+      setVaccines(mappedVaccines);
+      setBatches(mappedBatches);
+
+      // Calculate stats
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 30);
+      
+      const expiringBatches = mappedBatches.filter(batch => {
+        const expirationDate = new Date(batch.expirationDate);
+        return expirationDate <= tomorrow && batch.remainingQuantity > 0;
+      }).slice(0, 5);
+
+      setStats({
+        totalClients: mappedClients.length,
+        totalEmployees: mappedEmployees.length,
+        totalVaccines: mappedVaccines.length,
+        vaccinationsToday: 0,
+        expiringBatches,
+        recentVaccinations: []
+      });
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const StatCard = ({ 
     title, 
@@ -98,8 +170,14 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between">
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      ) : (
+        <>
+          {/* Welcome Header */}
+          <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-medical-blue">
             Bem-vindo ao VixClinic, {user?.name?.split(' ')[0]}!
@@ -301,6 +379,8 @@ export const Dashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 };

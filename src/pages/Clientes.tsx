@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,59 +13,60 @@ import {
   Phone,
   Mail
 } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Client } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { ClientForm } from '@/components/forms/ClientForm';
 import { useToast } from '@/hooks/use-toast';
 import { displayCPF, displayTelefone } from '@/lib/validations';
-
-const mockClients: Client[] = [
-  {
-    id: '1',
-    name: 'Carlos Eduardo Silva',
-    cpf: '11122233344', // Apenas números, sem formatação
-    dateOfBirth: '1985-05-15',
-    phone: '11999991111', // Apenas números, sem formatação
-    email: 'carlos@email.com',
-    address: 'Rua das Flores, 123',
-    allergies: 'Nenhuma alergia conhecida',
-    observations: '',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Mariana Santos Costa',
-    cpf: '55566677788',
-    dateOfBirth: '1992-08-22',
-    phone: '11888882222',
-    email: 'mariana@email.com',
-    address: 'Av. Principal, 456',
-    allergies: 'Alergia a penicilina',
-    observations: 'Histórico de desmaio durante vacinação',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'José Antonio Oliveira',
-    cpf: '99900011122',
-    dateOfBirth: '1978-12-10',
-    phone: '11777773333',
-    email: 'jose@email.com',
-    address: 'Rua da Saúde, 789',
-    allergies: '',
-    observations: 'Diabético tipo 2',
-    createdAt: new Date().toISOString(),
-  },
-];
+import { supabase } from '@/integrations/supabase/client';
 
 export const Clientes: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [clients, setClients] = useLocalStorage<Client[]>('vixclinic_clients', mockClients);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cliente')
+        .select('*')
+        .order('nomecompleto', { ascending: true });
+
+      if (error) throw error;
+
+      const mappedClients: Client[] = (data || []).map(cliente => ({
+        id: cliente.cpf,
+        name: cliente.nomecompleto,
+        cpf: cliente.cpf,
+        dateOfBirth: cliente.datanasc || '',
+        phone: cliente.telefone || '',
+        email: cliente.email || '',
+        address: '',
+        allergies: cliente.alergias || '',
+        observations: cliente.observacoes || '',
+        createdAt: new Date().toISOString(),
+      }));
+
+      setClients(mappedClients);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os clientes.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -87,26 +88,60 @@ export const Clientes: React.FC = () => {
     return age;
   };
 
-  const handleSaveClient = (clientData: Omit<Client, 'id' | 'createdAt'>) => {
-    if (editingClient) {
-      // Update existing client
-      const updatedClients = clients.map(client =>
-        client.id === editingClient.id
-          ? { ...client, ...clientData }
-          : client
-      );
-      setClients(updatedClients);
+  const handleSaveClient = async (clientData: Omit<Client, 'id' | 'createdAt'>) => {
+    try {
+      if (editingClient) {
+        const { error } = await supabase
+          .from('cliente')
+          .update({
+            nomecompleto: clientData.name,
+            datanasc: clientData.dateOfBirth,
+            telefone: clientData.phone,
+            email: clientData.email,
+            alergias: clientData.allergies,
+            observacoes: clientData.observations,
+          })
+          .eq('cpf', editingClient.cpf);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Cliente atualizado',
+          description: 'Os dados foram atualizados com sucesso.',
+        });
+      } else {
+        const { error } = await supabase
+          .from('cliente')
+          .insert({
+            cpf: clientData.cpf,
+            nomecompleto: clientData.name,
+            datanasc: clientData.dateOfBirth,
+            telefone: clientData.phone,
+            email: clientData.email,
+            alergias: clientData.allergies,
+            observacoes: clientData.observations,
+            status: 'ATIVO',
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: 'Cliente cadastrado',
+          description: 'O cliente foi adicionado com sucesso.',
+        });
+      }
+
       setEditingClient(undefined);
-    } else {
-      // Add new client
-      const newClient: Client = {
-        ...clientData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-      };
-      setClients([...clients, newClient]);
+      setShowForm(false);
+      fetchClients();
+    } catch (error: any) {
+      console.error('Erro ao salvar cliente:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível salvar o cliente.',
+        variant: 'destructive',
+      });
     }
-    setShowForm(false);
   };
 
   const handleEditClient = (client: Client) => {
@@ -114,14 +149,30 @@ export const Clientes: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleDeleteClient = (client: Client) => {
+  const handleDeleteClient = async (client: Client) => {
     if (confirm(`Tem certeza que deseja excluir o cliente ${client.name}?`)) {
-      const updatedClients = clients.filter(c => c.id !== client.id);
-      setClients(updatedClients);
-      toast({
-        title: "Cliente excluído",
-        description: `${client.name} foi removido do sistema.`,
-      });
+      try {
+        const { error } = await supabase
+          .from('cliente')
+          .delete()
+          .eq('cpf', client.cpf);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Cliente excluído',
+          description: `${client.name} foi removido do sistema.`,
+        });
+
+        fetchClients();
+      } catch (error: any) {
+        console.error('Erro ao excluir cliente:', error);
+        toast({
+          title: 'Erro',
+          description: error.message || 'Não foi possível excluir o cliente.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -233,7 +284,11 @@ export const Clientes: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredClients.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Carregando clientes...</p>
+              </div>
+            ) : filteredClients.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">Nenhum cliente encontrado</p>
