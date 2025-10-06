@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { Client } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { clienteSchema, formatCPF, formatTelefone } from '@/lib/validations';
 
 interface ClientFormProps {
   open: boolean;
@@ -35,16 +37,27 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.cpf || !formData.dateOfBirth || !formData.phone) {
+    // Limpa CPF e telefone (remove máscara)
+    const cleanedData = {
+      ...formData,
+      cpf: formatCPF(formData.cpf),
+      phone: formatTelefone(formData.phone),
+    };
+
+    // Validação com Zod
+    try {
+      clienteSchema.parse(cleanedData);
+    } catch (error: any) {
+      const errorMessage = error.errors?.[0]?.message || "Dados inválidos";
       toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Erro de validação",
+        description: errorMessage,
         variant: "destructive",
       });
       return;
     }
 
-    onSave(formData);
+    onSave(cleanedData);
     onOpenChange(false);
     setFormData({
       name: '',
@@ -88,7 +101,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({
             
             <div>
               <Label htmlFor="cpf">CPF *</Label>
-              <Input
+              <MaskedInput
+                mask="999.999.999-99"
                 id="cpf"
                 value={formData.cpf}
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
@@ -110,7 +124,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({
             
             <div>
               <Label htmlFor="phone">Telefone *</Label>
-              <Input
+              <MaskedInput
+                mask="(99) 99999-9999"
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}

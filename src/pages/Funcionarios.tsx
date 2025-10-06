@@ -17,13 +17,14 @@ import { User } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { EmployeeForm } from '@/components/forms/EmployeeForm';
 import { useToast } from '@/hooks/use-toast';
+import { displayCPF } from '@/lib/validations';
 
 const mockEmployees: User[] = [
   {
     id: '1',
     name: 'Dr. Maria Silva',
     email: 'admin@vixclinic.com',
-    cpf: '123.456.789-00',
+    cpf: '12345678900', // Apenas números, sem formatação
     role: 'admin',
     permissions: ['all'],
     active: true,
@@ -33,7 +34,7 @@ const mockEmployees: User[] = [
     id: '2',
     name: 'João Santos',
     email: 'funcionario@vixclinic.com',
-    cpf: '987.654.321-00',
+    cpf: '98765432100',
     role: 'funcionario',
     permissions: ['read_clients', 'write_clients', 'read_vaccines'],
     active: true,
@@ -43,7 +44,7 @@ const mockEmployees: User[] = [
     id: '3',
     name: 'Ana Costa',
     email: 'vacinador@vixclinic.com',
-    cpf: '456.789.123-00',
+    cpf: '45678912300',
     role: 'vacinador',
     permissions: ['read_clients', 'apply_vaccines', 'read_vaccines'],
     active: true,
@@ -232,7 +233,9 @@ export const Funcionarios: React.FC = () => {
                     <div>
                       <h3 className="font-semibold">{employee.name}</h3>
                       <p className="text-sm text-muted-foreground">{employee.email}</p>
-                      <p className="text-sm text-muted-foreground">CPF: {employee.cpf}</p>
+                      <p className="text-sm text-muted-foreground">
+                        CPF: {displayCPF(employee.cpf)}
+                      </p>
                     </div>
                   </div>
 

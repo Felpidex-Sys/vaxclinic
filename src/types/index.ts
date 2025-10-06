@@ -74,7 +74,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  cpf: string;
+  cpf: string; // VARCHAR(11) - apenas números, sem formatação
   role: 'admin' | 'funcionario' | 'vacinador';
   permissions: string[];
   active: boolean;
@@ -84,9 +84,9 @@ export interface User {
 export interface Client {
   id: string;
   name: string;
-  cpf: string;
+  cpf: string; // VARCHAR(11) - apenas números, sem formatação
   dateOfBirth: string;
-  phone: string;
+  phone: string; // VARCHAR(11) - apenas números, sem formatação
   email?: string;
   address?: string;
   allergies?: string;

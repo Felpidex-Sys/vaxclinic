@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MaskedInput } from '@/components/ui/masked-input';
 import { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { funcionarioSchema, formatCPF, senhaSchema } from '@/lib/validations';
 
 interface EmployeeFormProps {
   open: boolean;
@@ -30,6 +32,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     permissions: employee?.permissions || [],
     active: employee?.active ?? true,
   });
+  const [senha, setSenha] = useState('');
 
   const availablePermissions = [
     { id: 'all', label: 'Todas as permissões (Admin)' },
@@ -46,16 +49,31 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.cpf) {
+    // Limpa CPF (remove máscara)
+    const cleanedData = {
+      ...formData,
+      cpf: formatCPF(formData.cpf),
+    };
+
+    // Validação com Zod
+    try {
+      funcionarioSchema.parse(cleanedData);
+      
+      // Validação de senha apenas para novos funcionários
+      if (!employee && senha) {
+        senhaSchema.parse(senha);
+      }
+    } catch (error: any) {
+      const errorMessage = error.errors?.[0]?.message || "Dados inválidos";
       toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Erro de validação",
+        description: errorMessage,
         variant: "destructive",
       });
       return;
     }
 
-    onSave(formData);
+    onSave(cleanedData);
     onOpenChange(false);
     setFormData({
       name: '',
@@ -65,6 +83,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       permissions: [],
       active: true,
     });
+    setSenha('');
     
     toast({
       title: employee ? "Funcionário atualizado" : "Funcionário cadastrado",
@@ -132,7 +151,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             
             <div>
               <Label htmlFor="cpf">CPF *</Label>
-              <Input
+              <MaskedInput
+                mask="999.999.999-99"
                 id="cpf"
                 value={formData.cpf}
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
@@ -154,6 +174,24 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 </SelectContent>
               </Select>
             </div>
+            
+            {!employee && (
+              <div>
+                <Label htmlFor="senha">Senha *</Label>
+                <Input
+                  id="senha"
+                  type="password"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  required={!employee}
+                  minLength={8}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mínimo de 8 caracteres
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-4">

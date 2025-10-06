@@ -18,14 +18,15 @@ import { Client } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { ClientForm } from '@/components/forms/ClientForm';
 import { useToast } from '@/hooks/use-toast';
+import { displayCPF, displayTelefone } from '@/lib/validations';
 
 const mockClients: Client[] = [
   {
     id: '1',
     name: 'Carlos Eduardo Silva',
-    cpf: '111.222.333-44',
+    cpf: '11122233344', // Apenas números, sem formatação
     dateOfBirth: '1985-05-15',
-    phone: '(11) 99999-1111',
+    phone: '11999991111', // Apenas números, sem formatação
     email: 'carlos@email.com',
     address: 'Rua das Flores, 123',
     allergies: 'Nenhuma alergia conhecida',
@@ -35,9 +36,9 @@ const mockClients: Client[] = [
   {
     id: '2',
     name: 'Mariana Santos Costa',
-    cpf: '555.666.777-88',
+    cpf: '55566677788',
     dateOfBirth: '1992-08-22',
-    phone: '(11) 88888-2222',
+    phone: '11888882222',
     email: 'mariana@email.com',
     address: 'Av. Principal, 456',
     allergies: 'Alergia a penicilina',
@@ -47,9 +48,9 @@ const mockClients: Client[] = [
   {
     id: '3',
     name: 'José Antonio Oliveira',
-    cpf: '999.000.111-22',
+    cpf: '99900011122',
     dateOfBirth: '1978-12-10',
-    phone: '(11) 77777-3333',
+    phone: '11777773333',
     email: 'jose@email.com',
     address: 'Rua da Saúde, 789',
     allergies: '',
@@ -251,7 +252,7 @@ export const Clientes: React.FC = () => {
                     <div>
                       <h3 className="font-semibold">{client.name}</h3>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>CPF: {client.cpf}</span>
+                        <span>CPF: {displayCPF(client.cpf)}</span>
                         <span>{calculateAge(client.dateOfBirth)} anos</span>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -263,7 +264,7 @@ export const Clientes: React.FC = () => {
                         )}
                         <span className="flex items-center gap-1">
                           <Phone className="w-3 h-3" />
-                          {client.phone}
+                          {displayTelefone(client.phone)}
                         </span>
                       </div>
                     </div>
