@@ -14,7 +14,276 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agendamento: {
+        Row: {
+          cliente_cpf: string
+          dataagendada: string
+          funcionario_idfuncionario: number
+          idagendamento: number
+          lote_numlote: number
+          observacoes: string | null
+          status: Database["public"]["Enums"]["agendamento_status"]
+        }
+        Insert: {
+          cliente_cpf: string
+          dataagendada: string
+          funcionario_idfuncionario: number
+          idagendamento?: number
+          lote_numlote: number
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["agendamento_status"]
+        }
+        Update: {
+          cliente_cpf?: string
+          dataagendada?: string
+          funcionario_idfuncionario?: number
+          idagendamento?: number
+          lote_numlote?: number
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["agendamento_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamento_cliente_cpf_fkey"
+            columns: ["cliente_cpf"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["cpf"]
+          },
+          {
+            foreignKeyName: "agendamento_funcionario_idfuncionario_fkey"
+            columns: ["funcionario_idfuncionario"]
+            isOneToOne: false
+            referencedRelation: "funcionario"
+            referencedColumns: ["idfuncionario"]
+          },
+          {
+            foreignKeyName: "agendamento_lote_numlote_fkey"
+            columns: ["lote_numlote"]
+            isOneToOne: false
+            referencedRelation: "lote"
+            referencedColumns: ["numlote"]
+          },
+        ]
+      }
+      aplicacao: {
+        Row: {
+          agendamento_idagendamento: number
+          cliente_cpf: string
+          dataaplicacao: string
+          dose: number | null
+          funcionario_idfuncionario: number
+          idaplicacao: number
+          observacoes: string | null
+          reacoesadversas: string | null
+        }
+        Insert: {
+          agendamento_idagendamento: number
+          cliente_cpf: string
+          dataaplicacao: string
+          dose?: number | null
+          funcionario_idfuncionario: number
+          idaplicacao?: number
+          observacoes?: string | null
+          reacoesadversas?: string | null
+        }
+        Update: {
+          agendamento_idagendamento?: number
+          cliente_cpf?: string
+          dataaplicacao?: string
+          dose?: number | null
+          funcionario_idfuncionario?: number
+          idaplicacao?: number
+          observacoes?: string | null
+          reacoesadversas?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aplicacao_cliente_cpf_fkey"
+            columns: ["cliente_cpf"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["cpf"]
+          },
+          {
+            foreignKeyName: "aplicacao_funcionario_idfuncionario_fkey"
+            columns: ["funcionario_idfuncionario"]
+            isOneToOne: false
+            referencedRelation: "funcionario"
+            referencedColumns: ["idfuncionario"]
+          },
+        ]
+      }
+      cliente: {
+        Row: {
+          alergias: string | null
+          cpf: string
+          datanasc: string | null
+          email: string | null
+          nomecompleto: string
+          observacoes: string | null
+          status: Database["public"]["Enums"]["cliente_status"]
+          telefone: string | null
+        }
+        Insert: {
+          alergias?: string | null
+          cpf: string
+          datanasc?: string | null
+          email?: string | null
+          nomecompleto: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["cliente_status"]
+          telefone?: string | null
+        }
+        Update: {
+          alergias?: string | null
+          cpf?: string
+          datanasc?: string | null
+          email?: string | null
+          nomecompleto?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["cliente_status"]
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      funcionario: {
+        Row: {
+          cargo: string | null
+          cpf: string
+          dataadmissao: string | null
+          email: string
+          idfuncionario: number
+          nomecompleto: string
+          senha: string
+          status: Database["public"]["Enums"]["funcionario_status"]
+          telefone: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          cpf: string
+          dataadmissao?: string | null
+          email: string
+          idfuncionario?: number
+          nomecompleto: string
+          senha: string
+          status?: Database["public"]["Enums"]["funcionario_status"]
+          telefone?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          cpf?: string
+          dataadmissao?: string | null
+          email?: string
+          idfuncionario?: number
+          nomecompleto?: string
+          senha?: string
+          status?: Database["public"]["Enums"]["funcionario_status"]
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      historico_aplicacoes_cliente: {
+        Row: {
+          cliente_cpf_deletado: string
+          data_exclusao_cliente: string | null
+          dataaplicacao_hist: string | null
+          dose_hist: number | null
+          idagendamento_hist: number | null
+          idaplicacao_hist: number
+          idfuncionario_hist: number | null
+          idhistorico: number
+        }
+        Insert: {
+          cliente_cpf_deletado: string
+          data_exclusao_cliente?: string | null
+          dataaplicacao_hist?: string | null
+          dose_hist?: number | null
+          idagendamento_hist?: number | null
+          idaplicacao_hist: number
+          idfuncionario_hist?: number | null
+          idhistorico?: number
+        }
+        Update: {
+          cliente_cpf_deletado?: string
+          data_exclusao_cliente?: string | null
+          dataaplicacao_hist?: string | null
+          dose_hist?: number | null
+          idagendamento_hist?: number | null
+          idaplicacao_hist?: number
+          idfuncionario_hist?: number | null
+          idhistorico?: number
+        }
+        Relationships: []
+      }
+      lote: {
+        Row: {
+          codigolote: string
+          datavalidade: string
+          numlote: number
+          quantidadedisponivel: number
+          quantidadeinicial: number
+          vacina_idvacina: number
+        }
+        Insert: {
+          codigolote: string
+          datavalidade: string
+          numlote?: number
+          quantidadedisponivel: number
+          quantidadeinicial: number
+          vacina_idvacina: number
+        }
+        Update: {
+          codigolote?: string
+          datavalidade?: string
+          numlote?: number
+          quantidadedisponivel?: number
+          quantidadeinicial?: number
+          vacina_idvacina?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lote_vacina_idvacina_fkey"
+            columns: ["vacina_idvacina"]
+            isOneToOne: false
+            referencedRelation: "vacina"
+            referencedColumns: ["idvacina"]
+          },
+        ]
+      }
+      vacina: {
+        Row: {
+          categoria: Database["public"]["Enums"]["vacina_categoria"] | null
+          descricao: string | null
+          fabricante: string | null
+          idvacina: number
+          intervalodoses: number | null
+          nome: string
+          quantidadedoses: number | null
+          status: Database["public"]["Enums"]["vacina_status"]
+        }
+        Insert: {
+          categoria?: Database["public"]["Enums"]["vacina_categoria"] | null
+          descricao?: string | null
+          fabricante?: string | null
+          idvacina?: number
+          intervalodoses?: number | null
+          nome: string
+          quantidadedoses?: number | null
+          status?: Database["public"]["Enums"]["vacina_status"]
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["vacina_categoria"] | null
+          descricao?: string | null
+          fabricante?: string | null
+          idvacina?: number
+          intervalodoses?: number | null
+          nome?: string
+          quantidadedoses?: number | null
+          status?: Database["public"]["Enums"]["vacina_status"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +292,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      agendamento_status: "AGENDADO" | "REALIZADO"
+      cliente_status: "ATIVO" | "INATIVO"
+      funcionario_status: "ATIVO" | "INATIVO"
+      vacina_categoria: "VIRAL" | "BACTERIANA" | "OUTRA"
+      vacina_status: "ATIVA" | "INATIVA"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +423,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      agendamento_status: ["AGENDADO", "REALIZADO"],
+      cliente_status: ["ATIVO", "INATIVO"],
+      funcionario_status: ["ATIVO", "INATIVO"],
+      vacina_categoria: ["VIRAL", "BACTERIANA", "OUTRA"],
+      vacina_status: ["ATIVA", "INATIVA"],
+    },
   },
 } as const
