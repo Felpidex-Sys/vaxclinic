@@ -37,19 +37,27 @@ export default function Auth() {
 
         // Criar registro na tabela funcionario
         if (data.user) {
+          // Verificar se já existe algum funcionário (se não existir, criar como ADMIN)
+          const { count } = await supabase
+            .from('funcionario')
+            .select('*', { count: 'exact', head: true });
+
+          const isFirstUser = count === 0;
+
           const { error: profileError } = await supabase
             .from('funcionario')
             .insert({
               email: formData.email,
-              nomecompleto: 'Administrador',
-              cpf: '00000000000', // CPF temporário - deve ser atualizado
-              cargo: 'ADMIN',
-              senha: formData.password, // Nota: em produção, não salve senha em texto plano
+              nomecompleto: isFirstUser ? 'Administrador' : 'Funcionário',
+              cpf: isFirstUser ? '00000000000' : '11111111111',
+              cargo: isFirstUser ? 'ADMIN' : 'FUNCIONARIO',
+              senha: formData.password,
               status: 'ATIVO',
             });
 
           if (profileError) {
             console.error('Erro ao criar perfil:', profileError);
+            throw profileError;
           }
         }
 
