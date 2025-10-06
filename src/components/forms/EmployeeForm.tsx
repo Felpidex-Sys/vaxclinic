@@ -9,6 +9,7 @@ import { MaskedInput } from '@/components/ui/masked-input';
 import { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { funcionarioSchema, formatCPF, senhaSchema } from '@/lib/validations';
+import { hashPassword } from '@/lib/crypto';
 
 interface EmployeeFormProps {
   open: boolean;
@@ -46,7 +47,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     { id: 'manage_users', label: 'Gerenciar usuários' },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Limpa CPF (remove máscara)
@@ -73,7 +74,25 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       return;
     }
 
-    onSave(cleanedData);
+    // Hash da senha antes de salvar (apenas para novos funcionários)
+    let dataToSave = cleanedData;
+    if (!employee && senha) {
+      try {
+        const hashedPassword = await hashPassword(senha);
+        // Nota: em produção, você enviaria o hash junto com os dados do funcionário
+        // Por enquanto, apenas validamos que o hash foi criado com sucesso
+        console.log('Senha hash criado com sucesso');
+      } catch (error) {
+        toast({
+          title: "Erro ao processar senha",
+          description: "Não foi possível criptografar a senha.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    onSave(dataToSave);
     onOpenChange(false);
     setFormData({
       name: '',

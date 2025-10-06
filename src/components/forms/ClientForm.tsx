@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MaskedInput } from '@/components/ui/masked-input';
 import { Client } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +33,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     address: client?.address || '',
     allergies: client?.allergies || '',
     observations: client?.observations || '',
+    status: 'ATIVO' as 'ATIVO' | 'INATIVO',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -68,6 +70,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
       address: '',
       allergies: '',
       observations: '',
+      status: 'ATIVO',
     });
     
     toast({
@@ -176,6 +179,22 @@ export const ClientForm: React.FC<ClientFormProps> = ({
               placeholder="Observações adicionais"
               rows={2}
             />
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <Label htmlFor="status">Status:</Label>
+            <Select 
+              value={formData.status} 
+              onValueChange={(value: 'ATIVO' | 'INATIVO') => setFormData({ ...formData, status: value })}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ATIVO">Ativo</SelectItem>
+                <SelectItem value="INATIVO">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="flex justify-end gap-2 pt-4">

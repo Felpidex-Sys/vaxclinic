@@ -2,13 +2,14 @@
 
 // Cliente - Aligned with database schema
 export interface Cliente {
-  CPF: number;
+  CPF: string;
   nomeCompleto: string;
   dataNasc: string;
   email?: string;
   telefone: string;
   alergias?: string;
   observacoes?: string;
+  status: 'ATIVO' | 'INATIVO';
 }
 
 // Funcionario - Aligned with database schema
