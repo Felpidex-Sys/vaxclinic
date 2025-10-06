@@ -15,28 +15,111 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Agendamento, Client, VaccineBatch, User as UserType } from '@/types';
+import { Agendamento, Client, VaccineBatch, User as UserType, Lote } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { AgendamentoForm } from '@/components/forms/AgendamentoForm';
+import { supabase } from '@/integrations/supabase/client';
+import { useLocation } from 'react-router-dom';
 
 export const Agendamentos: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [agendamentos, setAgendamentos] = useLocalStorage<Agendamento[]>('vixclinic_agendamentos', []);
-  const [clients] = useLocalStorage<Client[]>('vixclinic_clients', []);
-  const [batches] = useLocalStorage<VaccineBatch[]>('vixclinic_batches', []);
-  const [employees] = useLocalStorage<UserType[]>('vixclinic_employees', []);
+  const location = useLocation();
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [batches, setBatches] = useState<Lote[]>([]);
+  const [employees, setEmployees] = useState<UserType[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAgendamento, setEditingAgendamento] = useState<Agendamento | null>(null);
 
+  useEffect(() => {
+    fetchData();
+    // Se vier de Clientes com CPF, abrir o form
+    if (location.state?.clientCPF) {
+      setIsFormOpen(true);
+    }
+  }, [location.state]);
+
+  const fetchData = async () => {
+    try {
+      const [agendamentosData, clientsData, lotesData, employeesData] = await Promise.all([
+        supabase.from('agendamento').select('*').order('dataagendada', { ascending: true }),
+        supabase.from('cliente').select('*'),
+        supabase.from('lote').select('*'),
+        supabase.from('funcionario').select('*'),
+      ]);
+
+      if (agendamentosData.error) throw agendamentosData.error;
+      if (clientsData.error) throw clientsData.error;
+      if (lotesData.error) throw lotesData.error;
+      if (employeesData.error) throw employeesData.error;
+
+      const mappedAgendamentos: Agendamento[] = (agendamentosData.data || []).map(a => ({
+        idAgendamento: a.idagendamento,
+        dataAgendada: a.dataagendada,
+        status: a.status as 'AGENDADO' | 'REALIZADO',
+        observacoes: a.observacoes || '',
+        Cliente_CPF: parseInt(a.cliente_cpf),
+        Funcionario_idFuncionario: a.funcionario_idfuncionario,
+        Lote_numLote: a.lote_numlote,
+      }));
+
+      const mappedClients: Client[] = (clientsData.data || []).map(c => ({
+        id: c.cpf,
+        name: c.nomecompleto,
+        cpf: c.cpf,
+        dateOfBirth: c.datanasc || '',
+        phone: c.telefone || '',
+        email: c.email || '',
+        address: '',
+        allergies: c.alergias || '',
+        observations: c.observacoes || '',
+        createdAt: new Date().toISOString(),
+      }));
+
+      const mappedLotes: Lote[] = (lotesData.data || []).map(l => ({
+        numLote: l.numlote,
+        codigoLote: l.codigolote,
+        quantidadeInicial: l.quantidadeinicial,
+        quantidadeDisponivel: l.quantidadedisponivel,
+        dataValidade: l.datavalidade,
+        Vacina_idVacina: l.vacina_idvacina,
+      }));
+
+      const mappedEmployees: UserType[] = (employeesData.data || []).map(e => ({
+        id: e.idfuncionario.toString(),
+        name: e.nomecompleto,
+        email: e.email,
+        cpf: e.cpf,
+        role: 'funcionario' as const,
+        permissions: ['all'],
+        active: e.status === 'ATIVO',
+        createdAt: e.dataadmissao || new Date().toISOString(),
+      }));
+
+      setAgendamentos(mappedAgendamentos);
+      setClients(mappedClients);
+      setBatches(mappedLotes);
+      setEmployees(mappedEmployees);
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os agendamentos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredAgendamentos = agendamentos.filter(agendamento => {
-    const client = clients.find(c => parseInt(c.cpf.replace(/\D/g, '')) === agendamento.Cliente_CPF);
-    const batch = batches.find(b => parseInt(b.id) === agendamento.Lote_numLote);
+    const client = clients.find(c => c.cpf === agendamento.Cliente_CPF.toString());
     
     const matchesSearch = !searchTerm || 
       client?.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -46,30 +129,57 @@ export const Agendamentos: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleSaveAgendamento = (agendamentoData: Omit<Agendamento, 'idAgendamento'>) => {
-    if (editingAgendamento) {
-      const updatedAgendamentos = agendamentos.map(a =>
-        a.idAgendamento === editingAgendamento.idAgendamento
-          ? { ...agendamentoData, idAgendamento: editingAgendamento.idAgendamento }
-          : a
-      );
-      setAgendamentos(updatedAgendamentos);
+  const handleSaveAgendamento = async (agendamentoData: Omit<Agendamento, 'idAgendamento'>) => {
+    try {
+      if (editingAgendamento) {
+        const { error } = await supabase
+          .from('agendamento')
+          .update({
+            dataagendada: agendamentoData.dataAgendada,
+            status: agendamentoData.status,
+            observacoes: agendamentoData.observacoes,
+            cliente_cpf: agendamentoData.Cliente_CPF.toString(),
+            funcionario_idfuncionario: agendamentoData.Funcionario_idFuncionario,
+            lote_numlote: agendamentoData.Lote_numLote,
+          })
+          .eq('idagendamento', editingAgendamento.idAgendamento);
+
+        if (error) throw error;
+
+        toast({
+          title: "Agendamento atualizado",
+          description: "O agendamento foi atualizado com sucesso.",
+        });
+      } else {
+        const { error } = await supabase
+          .from('agendamento')
+          .insert({
+            dataagendada: agendamentoData.dataAgendada,
+            status: agendamentoData.status,
+            observacoes: agendamentoData.observacoes,
+            cliente_cpf: agendamentoData.Cliente_CPF.toString(),
+            funcionario_idfuncionario: agendamentoData.Funcionario_idFuncionario,
+            lote_numlote: agendamentoData.Lote_numLote,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Agendamento criado",
+          description: "O agendamento foi criado com sucesso.",
+        });
+      }
+      
+      setEditingAgendamento(null);
+      fetchData();
+    } catch (error: any) {
+      console.error('Erro ao salvar agendamento:', error);
       toast({
-        title: "Agendamento atualizado",
-        description: "O agendamento foi atualizado com sucesso.",
-      });
-    } else {
-      const newAgendamento: Agendamento = {
-        ...agendamentoData,
-        idAgendamento: Date.now(),
-      };
-      setAgendamentos([...agendamentos, newAgendamento]);
-      toast({
-        title: "Agendamento criado",
-        description: "O agendamento foi criado com sucesso.",
+        title: "Erro",
+        description: error.message || "Não foi possível salvar o agendamento.",
+        variant: "destructive",
       });
     }
-    setEditingAgendamento(null);
   };
 
   const handleEdit = (agendamento: Agendamento) => {
@@ -77,24 +187,54 @@ export const Agendamentos: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (idAgendamento: number) => {
+  const handleDelete = async (idAgendamento: number) => {
     if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-      setAgendamentos(prev => prev.filter(a => a.idAgendamento !== idAgendamento));
-      toast({
-        title: "Agendamento excluído",
-        description: "O agendamento foi excluído com sucesso.",
-      });
+      try {
+        const { error } = await supabase
+          .from('agendamento')
+          .delete()
+          .eq('idagendamento', idAgendamento);
+
+        if (error) throw error;
+
+        toast({
+          title: "Agendamento excluído",
+          description: "O agendamento foi excluído com sucesso.",
+        });
+        fetchData();
+      } catch (error: any) {
+        console.error('Erro ao excluir agendamento:', error);
+        toast({
+          title: "Erro",
+          description: error.message || "Não foi possível excluir o agendamento.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const updateStatus = (idAgendamento: number, status: Agendamento['status']) => {
-    setAgendamentos(prev => prev.map(a => 
-      a.idAgendamento === idAgendamento ? { ...a, status } : a
-    ));
-    toast({
-      title: "Status atualizado",
-      description: `Agendamento marcado como ${status.toLowerCase()}.`,
-    });
+  const updateStatus = async (idAgendamento: number, status: Agendamento['status']) => {
+    try {
+      const { error } = await supabase
+        .from('agendamento')
+        .update({ status })
+        .eq('idagendamento', idAgendamento);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status atualizado",
+        description: `Agendamento marcado como ${status.toLowerCase()}.`,
+      });
+      fetchData();
+    } catch (error: any) {
+      console.error('Erro ao atualizar status:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível atualizar o status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: Agendamento['status']) => {
@@ -213,7 +353,13 @@ export const Agendamentos: React.FC = () => {
 
       {/* Agendamentos List */}
       <div className="grid gap-4">
-        {filteredAgendamentos.length === 0 ? (
+        {loading ? (
+          <Card className="card-shadow">
+            <CardContent className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Carregando agendamentos...</p>
+            </CardContent>
+          </Card>
+        ) : filteredAgendamentos.length === 0 ? (
           <Card className="card-shadow">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
@@ -238,8 +384,8 @@ export const Agendamentos: React.FC = () => {
           </Card>
         ) : (
           filteredAgendamentos.map((agendamento) => {
-            const client = clients.find(c => parseInt(c.cpf.replace(/\D/g, '')) === agendamento.Cliente_CPF);
-            const batch = batches.find(b => parseInt(b.id) === agendamento.Lote_numLote);
+            const client = clients.find(c => c.cpf === agendamento.Cliente_CPF.toString());
+            const batch = batches.find(b => b.numLote === agendamento.Lote_numLote);
             const funcionario = employees.find(e => parseInt(e.id) === agendamento.Funcionario_idFuncionario);
             
             return (
@@ -252,7 +398,7 @@ export const Agendamentos: React.FC = () => {
                         <div>
                           <h3 className="font-semibold text-lg">{client?.name || 'Cliente não encontrado'}</h3>
                           <p className="text-sm text-muted-foreground">
-                            Lote {batch?.batchNumber || 'não encontrado'}
+                            Lote {batch?.codigoLote || 'não encontrado'}
                           </p>
                         </div>
                       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +11,9 @@ import {
   Lock,
   Unlock
 } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { User } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const availablePermissions = [
   { id: 'all', name: 'Acesso Total', description: 'Acesso completo ao sistema' },
@@ -35,9 +36,48 @@ const roleTemplates = {
 };
 
 export const Permissoes: React.FC = () => {
-  const [employees, setEmployees] = useLocalStorage<User[]>('vixclinic_employees', []);
+  const { toast } = useToast();
+  const [employees, setEmployees] = useState<User[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('funcionario')
+        .select('*')
+        .order('nomecompleto', { ascending: true });
+
+      if (error) throw error;
+
+      const mappedEmployees: User[] = (data || []).map(e => ({
+        id: e.idfuncionario.toString(),
+        name: e.nomecompleto,
+        email: e.email,
+        cpf: e.cpf,
+        role: e.cargo === 'Administrador' ? 'admin' : e.cargo === 'Vacinador' ? 'vacinador' : 'funcionario',
+        permissions: ['all'], // Por enquanto todos têm todas as permissões
+        active: e.status === 'ATIVO',
+        createdAt: e.dataadmissao || new Date().toISOString(),
+      }));
+
+      setEmployees(mappedEmployees);
+    } catch (error) {
+      console.error('Erro ao buscar funcionários:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os funcionários.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePermissionChange = (permissionId: string, checked: boolean) => {
     if (!selectedEmployee) return;
@@ -62,15 +102,35 @@ export const Permissoes: React.FC = () => {
     setSelectedEmployee(updatedEmployee);
   };
 
-  const savePermissions = () => {
+  const savePermissions = async () => {
     if (!selectedEmployee) return;
 
-    const updatedEmployees = employees.map(emp => 
-      emp.id === selectedEmployee.id ? selectedEmployee : emp
-    );
-    
-    setEmployees(updatedEmployees);
-    setIsEditing(false);
+    try {
+      const { error } = await supabase
+        .from('funcionario')
+        .update({
+          cargo: selectedEmployee.role === 'admin' ? 'Administrador' : 
+                 selectedEmployee.role === 'vacinador' ? 'Vacinador' : 'Funcionário',
+        })
+        .eq('idfuncionario', parseInt(selectedEmployee.id));
+
+      if (error) throw error;
+
+      toast({
+        title: 'Permissões atualizadas',
+        description: 'As permissões foram atualizadas com sucesso.',
+      });
+      
+      setIsEditing(false);
+      fetchEmployees();
+    } catch (error: any) {
+      console.error('Erro ao atualizar permissões:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível atualizar as permissões.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const applyRoleTemplate = (role: keyof typeof roleTemplates) => {
@@ -127,8 +187,13 @@ export const Permissoes: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {employees.map((employee) => (
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Carregando funcionários...</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {employees.map((employee) => (
                 <div
                   key={employee.id}
                   className={`p-3 border rounded-lg cursor-pointer smooth-transition ${
@@ -141,13 +206,13 @@ export const Permissoes: React.FC = () => {
                     setIsEditing(false);
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">{employee.name}</h3>
-                      <p className="text-sm text-muted-foreground">{employee.email}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-medium truncate">{employee.name}</h3>
+                      <p className="text-sm text-muted-foreground truncate">{employee.email}</p>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Badge className={getRoleBadgeColor(employee.role)}>
                         {getRoleLabel(employee.role)}
                       </Badge>
@@ -160,7 +225,8 @@ export const Permissoes: React.FC = () => {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -194,12 +260,13 @@ export const Permissoes: React.FC = () => {
                 {/* Role Templates */}
                 <div>
                   <h4 className="font-medium mb-3">Modelos de Permissão</h4>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => applyRoleTemplate('admin')}
                       disabled={!isEditing}
+                      className="flex-shrink-0"
                     >
                       Administrador
                     </Button>
@@ -208,6 +275,7 @@ export const Permissoes: React.FC = () => {
                       size="sm"
                       onClick={() => applyRoleTemplate('funcionario')}
                       disabled={!isEditing}
+                      className="flex-shrink-0"
                     >
                       Funcionário
                     </Button>
@@ -216,6 +284,7 @@ export const Permissoes: React.FC = () => {
                       size="sm"
                       onClick={() => applyRoleTemplate('vacinador')}
                       disabled={!isEditing}
+                      className="flex-shrink-0"
                     >
                       Vacinador
                     </Button>
@@ -253,11 +322,11 @@ export const Permissoes: React.FC = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
                   {!isEditing ? (
                     <Button 
                       onClick={() => setIsEditing(true)}
-                      className="medical-gradient text-white"
+                      className="medical-gradient text-white w-full sm:w-auto"
                     >
                       <Settings className="w-4 h-4 mr-2" />
                       Editar Permissões
@@ -266,7 +335,7 @@ export const Permissoes: React.FC = () => {
                     <>
                       <Button 
                         onClick={savePermissions}
-                        className="medical-gradient text-white"
+                        className="medical-gradient text-white w-full sm:w-auto"
                       >
                         Salvar Alterações
                       </Button>
@@ -274,12 +343,9 @@ export const Permissoes: React.FC = () => {
                         variant="outline"
                         onClick={() => {
                           setIsEditing(false);
-                          // Reset to original employee data
-                          const originalEmployee = employees.find(e => e.id === selectedEmployee.id);
-                          if (originalEmployee) {
-                            setSelectedEmployee(originalEmployee);
-                          }
+                          fetchEmployees();
                         }}
+                        className="w-full sm:w-auto"
                       >
                         Cancelar
                       </Button>

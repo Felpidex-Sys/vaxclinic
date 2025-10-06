@@ -343,8 +343,10 @@ export const Clientes: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/clientes`)}
-                        title="Ver histórico"
+                        onClick={() => {
+                          navigate('/agendamentos', { state: { clientCPF: client.cpf } });
+                        }}
+                        title="Agendar vacinação"
                       >
                         <Calendar className="w-4 h-4" />
                       </Button>

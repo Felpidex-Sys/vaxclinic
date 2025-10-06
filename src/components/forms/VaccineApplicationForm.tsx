@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Client, Vaccine, VaccineBatch, VaccinationRecord } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VaccineApplicationFormProps {
   open: boolean;
@@ -42,7 +43,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
     batch => batch.vaccineId === formData.vaccineId && batch.remainingQuantity > 0
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.clientId || !formData.vaccineId || !formData.batchId) {
@@ -54,29 +55,70 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
       return;
     }
 
-    const vaccination: Omit<VaccinationRecord, 'id' | 'createdAt'> = {
-      ...formData,
-      appliedBy,
-      applicationDate: new Date(formData.applicationDate).toISOString(),
-      nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate).toISOString() : '',
-    };
+    try {
+      // Primeiro, salvar a aplicação no banco
+      const { error: aplicacaoError } = await supabase
+        .from('aplicacao')
+        .insert({
+          cliente_cpf: formData.clientId,
+          funcionario_idfuncionario: parseInt(appliedBy),
+          agendamento_idagendamento: 0, // Aplicação sem agendamento prévio
+          dataaplicacao: formData.applicationDate,
+          dose: formData.doseNumber,
+          observacoes: formData.notes || null,
+        });
 
-    onSave(vaccination);
-    onOpenChange(false);
-    setFormData({
-      clientId: '',
-      vaccineId: '',
-      batchId: '',
-      doseNumber: 1,
-      applicationDate: new Date().toISOString().split('T')[0],
-      nextDueDate: '',
-      notes: '',
-    });
-    
-    toast({
-      title: "Vacina aplicada",
-      description: "A vacinação foi registrada com sucesso.",
-    });
+      if (aplicacaoError) throw aplicacaoError;
+
+      // Atualizar o estoque do lote
+      // Buscar a quantidade atual
+      const { data: loteAtual, error: loteSelectError } = await supabase
+        .from('lote')
+        .select('quantidadedisponivel')
+        .eq('numlote', parseInt(formData.batchId))
+        .single();
+
+      if (loteSelectError) throw loteSelectError;
+
+      // Atualizar com a nova quantidade
+      const { error: updateError } = await supabase
+        .from('lote')
+        .update({ quantidadedisponivel: (loteAtual?.quantidadedisponivel || 1) - 1 })
+        .eq('numlote', parseInt(formData.batchId));
+      
+      if (updateError) throw updateError;
+
+      const vaccination: Omit<VaccinationRecord, 'id' | 'createdAt'> = {
+        ...formData,
+        appliedBy,
+        applicationDate: new Date(formData.applicationDate).toISOString(),
+        nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate).toISOString() : '',
+      };
+
+      onSave(vaccination);
+      onOpenChange(false);
+      setFormData({
+        clientId: '',
+        vaccineId: '',
+        batchId: '',
+        doseNumber: 1,
+        applicationDate: new Date().toISOString().split('T')[0],
+        nextDueDate: '',
+        notes: '',
+      });
+      
+      toast({
+        title: "Vacina aplicada",
+        description: "A vacinação foi registrada com sucesso no banco de dados.",
+      });
+    } catch (error: any) {
+      console.error('Erro ao aplicar vacina:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível registrar a vacinação.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

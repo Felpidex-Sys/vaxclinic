@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,18 +14,116 @@ import {
   BarChart3,
   PieChart
 } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Client, User, Vaccine, VaccinationRecord, VaccineBatch } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const Relatorios: React.FC = () => {
-  const [clients] = useLocalStorage<Client[]>('vixclinic_clients', []);
-  const [employees] = useLocalStorage<User[]>('vixclinic_employees', []);
-  const [vaccines] = useLocalStorage<Vaccine[]>('vixclinic_vaccines', []);
-  const [vaccinations] = useLocalStorage<VaccinationRecord[]>('vixclinic_vaccinations', []);
-  const [batches] = useLocalStorage<VaccineBatch[]>('vixclinic_batches', []);
+  const { toast } = useToast();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [vaccines, setVaccines] = useState<Vaccine[]>([]);
+  const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
+  const [batches, setBatches] = useState<VaccineBatch[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [clientsData, employeesData, vaccinesData, aplicacoesData, batchesData] = await Promise.all([
+        supabase.from('cliente').select('*'),
+        supabase.from('funcionario').select('*'),
+        supabase.from('vacina').select('*'),
+        supabase.from('aplicacao').select('*'),
+        supabase.from('lote').select('*'),
+      ]);
+
+      if (clientsData.error) throw clientsData.error;
+      if (employeesData.error) throw employeesData.error;
+      if (vaccinesData.error) throw vaccinesData.error;
+      if (aplicacoesData.error) throw aplicacoesData.error;
+      if (batchesData.error) throw batchesData.error;
+
+      const mappedClients: Client[] = (clientsData.data || []).map(c => ({
+        id: c.cpf,
+        name: c.nomecompleto,
+        cpf: c.cpf,
+        dateOfBirth: c.datanasc || '',
+        phone: c.telefone || '',
+        email: c.email || '',
+        address: '',
+        allergies: c.alergias || '',
+        observations: c.observacoes || '',
+        createdAt: new Date().toISOString(),
+      }));
+
+      const mappedEmployees: User[] = (employeesData.data || []).map(e => ({
+        id: e.idfuncionario.toString(),
+        name: e.nomecompleto,
+        email: e.email,
+        cpf: e.cpf,
+        role: 'funcionario' as const,
+        permissions: ['all'],
+        active: e.status === 'ATIVO',
+        createdAt: e.dataadmissao || new Date().toISOString(),
+      }));
+
+      const mappedVaccines: Vaccine[] = (vaccinesData.data || []).map(v => ({
+        id: v.idvacina.toString(),
+        name: v.nome,
+        manufacturer: v.fabricante || '',
+        description: v.descricao || '',
+        targetDisease: v.categoria || '',
+        dosesRequired: v.quantidadedoses || 1,
+        createdAt: new Date().toISOString(),
+      }));
+
+      const mappedVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map(a => ({
+        id: a.idaplicacao.toString(),
+        clientId: a.cliente_cpf,
+        vaccineId: '',
+        batchId: '',
+        applicationDate: a.dataaplicacao,
+        appliedBy: a.funcionario_idfuncionario.toString(),
+        doseNumber: a.dose || 1,
+        nextDueDate: '',
+        observations: a.observacoes || '',
+        createdAt: a.dataaplicacao,
+      }));
+
+      const mappedBatches: VaccineBatch[] = (batchesData.data || []).map(b => ({
+        id: b.numlote.toString(),
+        vaccineId: b.vacina_idvacina.toString(),
+        batchNumber: b.codigolote,
+        quantity: b.quantidadeinicial,
+        remainingQuantity: b.quantidadedisponivel,
+        manufacturingDate: new Date().toISOString(),
+        expirationDate: b.datavalidade,
+        createdAt: new Date().toISOString(),
+      }));
+
+      setClients(mappedClients);
+      setEmployees(mappedEmployees);
+      setVaccines(mappedVaccines);
+      setVaccinations(mappedVaccinations);
+      setBatches(mappedBatches);
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os dados dos relatórios.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate statistics
   const totalVaccinations = vaccinations.length;
@@ -89,6 +187,14 @@ export const Relatorios: React.FC = () => {
     // For prototype, we'll just show an alert
     alert(`Relatório "${reportType}" seria gerado aqui`);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Carregando relatórios...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -334,38 +440,38 @@ export const Relatorios: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button
               variant="outline"
-              className="h-20 flex flex-col gap-2"
+              className="h-auto min-h-[5rem] flex flex-col gap-2 p-4 text-center"
               onClick={() => generateReport('Vacinações por Período')}
             >
-              <Calendar className="w-6 h-6 text-medical-blue" />
-              <span className="text-sm">Vacinações por Período</span>
+              <Calendar className="w-6 h-6 text-medical-blue flex-shrink-0" />
+              <span className="text-sm whitespace-normal">Vacinações por Período</span>
             </Button>
             
             <Button
               variant="outline"
-              className="h-20 flex flex-col gap-2"
+              className="h-auto min-h-[5rem] flex flex-col gap-2 p-4 text-center"
               onClick={() => generateReport('Estoque Atual')}
             >
-              <BarChart3 className="w-6 h-6 text-medical-blue" />
-              <span className="text-sm">Estoque Atual</span>
+              <BarChart3 className="w-6 h-6 text-medical-blue flex-shrink-0" />
+              <span className="text-sm whitespace-normal">Estoque Atual</span>
             </Button>
             
             <Button
               variant="outline"
-              className="h-20 flex flex-col gap-2"
+              className="h-auto min-h-[5rem] flex flex-col gap-2 p-4 text-center"
               onClick={() => generateReport('Funcionários Ativos')}
             >
-              <Users className="w-6 h-6 text-medical-blue" />
-              <span className="text-sm">Funcionários Ativos</span>
+              <Users className="w-6 h-6 text-medical-blue flex-shrink-0" />
+              <span className="text-sm whitespace-normal">Funcionários Ativos</span>
             </Button>
             
             <Button
               variant="outline"
-              className="h-20 flex flex-col gap-2"
+              className="h-auto min-h-[5rem] flex flex-col gap-2 p-4 text-center"
               onClick={() => generateReport('Relatório Completo')}
             >
-              <Download className="w-6 h-6 text-medical-blue" />
-              <span className="text-sm">Relatório Completo</span>
+              <Download className="w-6 h-6 text-medical-blue flex-shrink-0" />
+              <span className="text-sm whitespace-normal">Relatório Completo</span>
             </Button>
           </div>
         </CardContent>

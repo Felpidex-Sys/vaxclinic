@@ -16,10 +16,12 @@ import { DashboardStats, Client, User, Vaccine, VaccineBatch, VaccinationRecord,
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
@@ -41,69 +43,61 @@ export const Dashboard: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch clients
-      const { data: clientesData } = await supabase
-        .from('cliente')
-        .select('*');
+      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesData] = await Promise.all([
+        supabase.from('cliente').select('*'),
+        supabase.from('funcionario').select('*'),
+        supabase.from('vacina').select('*'),
+        supabase.from('lote').select('*'),
+        supabase.from('aplicacao').select('*').order('dataaplicacao', { ascending: false }).limit(5),
+      ]);
 
-      const mappedClients: Client[] = (clientesData || []).map(cliente => ({
-        id: cliente.cpf,
-        name: cliente.nomecompleto,
-        cpf: cliente.cpf,
-        dateOfBirth: cliente.datanasc || '',
-        phone: cliente.telefone || '',
-        email: cliente.email || '',
+      if (clientsData.error) throw clientsData.error;
+      if (employeesData.error) throw employeesData.error;
+      if (vaccinesData.error) throw vaccinesData.error;
+      if (batchesData.error) throw batchesData.error;
+
+      const mappedClients: Client[] = (clientsData.data || []).map(c => ({
+        id: c.cpf,
+        name: c.nomecompleto,
+        cpf: c.cpf,
+        dateOfBirth: c.datanasc || '',
+        phone: c.telefone || '',
+        email: c.email || '',
         address: '',
-        allergies: cliente.alergias || '',
-        observations: cliente.observacoes || '',
+        allergies: c.alergias || '',
+        observations: c.observacoes || '',
         createdAt: new Date().toISOString(),
       }));
 
-      // Fetch employees
-      const { data: funcionariosData } = await supabase
-        .from('funcionario')
-        .select('*');
+      const mappedEmployees: User[] = (employeesData.data || []).map(e => ({
+        id: e.idfuncionario.toString(),
+        name: e.nomecompleto,
+        email: e.email,
+        cpf: e.cpf,
+        role: 'funcionario' as const,
+        permissions: ['all'],
+        active: e.status === 'ATIVO',
+        createdAt: e.dataadmissao || new Date().toISOString(),
+      }));
 
-      const mappedEmployees: User[] = (funcionariosData || []).map(func => ({
-        id: func.idfuncionario.toString(),
-        name: func.nomecompleto,
-        email: func.email,
-        cpf: func.cpf,
-        role: (func.cargo || 'funcionario') as 'admin' | 'funcionario' | 'vacinador',
-        permissions: [],
-        active: func.status === 'ATIVO',
+      const mappedVaccines: Vaccine[] = (vaccinesData.data || []).map(v => ({
+        id: v.idvacina.toString(),
+        name: v.nome,
+        manufacturer: v.fabricante || '',
+        description: v.descricao || '',
+        targetDisease: v.categoria || '',
+        dosesRequired: v.quantidadedoses || 1,
         createdAt: new Date().toISOString(),
       }));
 
-      // Fetch vaccines
-      const { data: vacinasData } = await supabase
-        .from('vacina')
-        .select('*');
-
-      const mappedVaccines: Vaccine[] = (vacinasData || []).map(vac => ({
-        id: vac.idvacina.toString(),
-        name: vac.nome,
-        manufacturer: vac.fabricante || '',
-        description: vac.descricao || '',
-        targetDisease: vac.categoria || '',
-        dosesRequired: vac.quantidadedoses || 1,
-        createdAt: new Date().toISOString(),
-      }));
-
-      // Fetch batches
-      const { data: lotesData } = await supabase
-        .from('lote')
-        .select('*')
-        .order('datavalidade', { ascending: true });
-
-      const mappedBatches: VaccineBatch[] = (lotesData || []).map(lote => ({
-        id: lote.numlote.toString(),
-        vaccineId: lote.vacina_idvacina.toString(),
-        batchNumber: lote.codigolote,
-        quantity: lote.quantidadeinicial,
-        remainingQuantity: lote.quantidadedisponivel,
-        manufacturingDate: '',
-        expirationDate: lote.datavalidade,
+      const mappedBatches: VaccineBatch[] = (batchesData.data || []).map(b => ({
+        id: b.numlote.toString(),
+        vaccineId: b.vacina_idvacina.toString(),
+        batchNumber: b.codigolote,
+        quantity: b.quantidadeinicial,
+        remainingQuantity: b.quantidadedisponivel,
+        manufacturingDate: new Date().toISOString(),
+        expirationDate: b.datavalidade,
         createdAt: new Date().toISOString(),
       }));
 
@@ -112,25 +106,34 @@ export const Dashboard: React.FC = () => {
       setVaccines(mappedVaccines);
       setBatches(mappedBatches);
 
-      // Calculate stats
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 30);
-      
-      const expiringBatches = mappedBatches.filter(batch => {
-        const expirationDate = new Date(batch.expirationDate);
-        return expirationDate <= tomorrow && batch.remainingQuantity > 0;
-      }).slice(0, 5);
+      // Calcular estatísticas
+      const today = new Date().toISOString().split('T')[0];
+      const vacinacoesHoje = (aplicacoesData.data || []).filter(
+        a => a.dataaplicacao === today
+      ).length;
+
+      const lotesVencendo = mappedBatches.filter(batch => {
+        const daysUntilExpiration = Math.floor(
+          (new Date(batch.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return daysUntilExpiration > 0 && daysUntilExpiration <= 30;
+      });
 
       setStats({
         totalClients: mappedClients.length,
         totalEmployees: mappedEmployees.length,
         totalVaccines: mappedVaccines.length,
-        vaccinationsToday: 0,
-        expiringBatches,
-        recentVaccinations: []
+        vaccinationsToday: vacinacoesHoje,
+        expiringBatches: lotesVencendo,
+        recentVaccinations: [],
       });
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os dados do sistema.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

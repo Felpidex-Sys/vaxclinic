@@ -75,13 +75,15 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     }
 
     // Hash da senha antes de salvar (apenas para novos funcionários)
-    let dataToSave = cleanedData;
     if (!employee && senha) {
       try {
         const hashedPassword = await hashPassword(senha);
-        // Nota: em produção, você enviaria o hash junto com os dados do funcionário
-        // Por enquanto, apenas validamos que o hash foi criado com sucesso
-        console.log('Senha hash criado com sucesso');
+        // Adiciona a senha hash aos dados
+        const dataWithPassword = {
+          ...cleanedData,
+          senha: hashedPassword,
+        };
+        onSave(dataWithPassword as any);
       } catch (error) {
         toast({
           title: "Erro ao processar senha",
@@ -90,9 +92,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         });
         return;
       }
+    } else {
+      onSave(cleanedData);
     }
-
-    onSave(dataToSave);
     onOpenChange(false);
     setFormData({
       name: '',

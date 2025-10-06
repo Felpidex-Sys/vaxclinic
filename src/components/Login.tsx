@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Syringe } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { verifyPassword } from '@/lib/crypto';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -25,12 +27,50 @@ export const Login: React.FC = () => {
       return;
     }
 
-    const success = await login(email, password);
-    
-    if (!success) {
+    try {
+      // Buscar funcionário por email
+      const { data: funcionario, error } = await supabase
+        .from('funcionario')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (error || !funcionario) {
+        toast({
+          title: "Erro de autenticação",
+          description: "Email ou senha incorretos.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Verificar senha com bcrypt
+      const senhaCorreta = await verifyPassword(password, funcionario.senha);
+      
+      if (!senhaCorreta) {
+        toast({
+          title: "Erro de autenticação",
+          description: "Email ou senha incorretos.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Login bem-sucedido
+      const success = await login(email, password);
+      
+      if (!success) {
+        toast({
+          title: "Erro de autenticação",
+          description: "Erro ao fazer login no sistema.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro no login:', error);
       toast({
-        title: "Erro de autenticação",
-        description: "Email ou senha incorretos.",
+        title: "Erro",
+        description: "Ocorreu um erro ao tentar fazer login.",
         variant: "destructive",
       });
     }

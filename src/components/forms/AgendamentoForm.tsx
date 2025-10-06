@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Client, Vaccine, User, Agendamento, Lote, VaccineBatch } from '@/types';
+import { Agendamento, Client, Lote, User as UserType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'react-router-dom';
 
 interface AgendamentoFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clients: Client[];
-  batches: VaccineBatch[];
-  employees: User[];
+  batches: Lote[];
+  employees: UserType[];
   onSave: (agendamento: Omit<Agendamento, 'idAgendamento'>) => void;
   currentUserId: string;
   editingAgendamento?: Agendamento | null;
@@ -30,6 +31,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
   editingAgendamento,
 }) => {
   const { toast } = useToast();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     Cliente_CPF: editingAgendamento?.Cliente_CPF || 0,
     Funcionario_idFuncionario: editingAgendamento?.Funcionario_idFuncionario || parseInt(currentUserId) || 0,
@@ -37,6 +39,23 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
     dataAgendada: editingAgendamento?.dataAgendada ? editingAgendamento.dataAgendada.split('T')[0] + 'T' + editingAgendamento.dataAgendada.split('T')[1].slice(0, 5) : '',
     observacoes: editingAgendamento?.observacoes || '',
   });
+
+  useEffect(() => {
+    if (editingAgendamento) {
+      setFormData({
+        Cliente_CPF: editingAgendamento.Cliente_CPF,
+        Lote_numLote: editingAgendamento.Lote_numLote,
+        Funcionario_idFuncionario: editingAgendamento.Funcionario_idFuncionario,
+        dataAgendada: editingAgendamento.dataAgendada.split('T')[0] + 'T' + editingAgendamento.dataAgendada.split('T')[1].slice(0, 5),
+        observacoes: editingAgendamento.observacoes || '',
+      });
+    } else if (location.state?.clientCPF) {
+      setFormData(prev => ({
+        ...prev,
+        Cliente_CPF: parseInt(location.state.clientCPF.replace(/\D/g, '')),
+      }));
+    }
+  }, [editingAgendamento, location.state]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +116,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
             <div>
               <Label htmlFor="cliente">Cliente *</Label>
               <Select 
-                value={formData.Cliente_CPF.toString()} 
+                value={formData.Cliente_CPF > 0 ? formData.Cliente_CPF.toString() : ""} 
                 onValueChange={(value) => setFormData({ ...formData, Cliente_CPF: parseInt(value) })}
               >
                 <SelectTrigger>
@@ -116,16 +135,16 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
             <div>
               <Label htmlFor="lote">Lote da Vacina *</Label>
               <Select 
-                value={formData.Lote_numLote.toString()} 
+                value={formData.Lote_numLote > 0 ? formData.Lote_numLote.toString() : ""} 
                 onValueChange={(value) => setFormData({ ...formData, Lote_numLote: parseInt(value) })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o lote" />
                 </SelectTrigger>
                 <SelectContent>
-                  {batches.map((batch) => (
-                    <SelectItem key={batch.id} value={batch.id}>
-                      Lote {batch.batchNumber} - {batch.remainingQuantity} doses
+                  {batches.filter(b => b.quantidadeDisponivel > 0).map((batch) => (
+                    <SelectItem key={batch.numLote} value={batch.numLote.toString()}>
+                      {batch.codigoLote} - {batch.quantidadeDisponivel} doses disponíveis
                     </SelectItem>
                   ))}
                 </SelectContent>
