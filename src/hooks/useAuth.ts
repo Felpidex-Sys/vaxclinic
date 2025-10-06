@@ -1,5 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -18,73 +20,93 @@ export const useAuth = () => {
   return context;
 };
 
-// Mock users for prototype
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'Dr. Maria Silva',
-    email: 'admin@vixclinic.com',
-    cpf: '123.456.789-00',
-    role: 'admin',
-    permissions: ['all'],
-    active: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'João Santos',
-    email: 'funcionario@vixclinic.com',
-    cpf: '987.654.321-00',
-    role: 'funcionario',
-    permissions: ['read_clients', 'write_clients', 'read_vaccines'],
-    active: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Ana Costa',
-    email: 'vacinador@vixclinic.com',
-    cpf: '456.789.123-00',
-    role: 'vacinador',
-    permissions: ['read_clients', 'apply_vaccines', 'read_vaccines'],
-    active: true,
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth on mount
-    const storedUser = localStorage.getItem('vixclinic_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (session?.user?.email) {
+          setTimeout(() => {
+            fetchUserProfile(session.user.email!);
+          }, 0);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user?.email) {
+        fetchUserProfile(session.user.email);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const fetchUserProfile = async (userEmail: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('funcionario')
+        .select('*')
+        .eq('email', userEmail)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        const userData: User = {
+          id: data.idfuncionario.toString(),
+          name: data.nomecompleto,
+          email: data.email,
+          cpf: data.cpf,
+          role: data.cargo === 'ADMIN' ? 'admin' : 'funcionario',
+          permissions: data.cargo === 'ADMIN' ? ['all'] : ['read_clients', 'write_clients'],
+          active: data.status === 'ATIVO',
+          createdAt: new Date().toISOString(),
+        };
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Mock authentication - check against mock users
-    const foundUser = mockUsers.find(u => u.email === email);
-    
-    if (foundUser && password === '123456') { // Simple mock password
-      setUser(foundUser);
-      localStorage.setItem('vixclinic_user', JSON.stringify(foundUser));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
       setIsLoading(false);
       return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('vixclinic_user');
+    setSession(null);
   };
 
   return { user, login, logout, isLoading };

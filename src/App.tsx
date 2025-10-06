@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/AuthProvider";
 import { useAuth } from "@/hooks/useAuth";
-import { Login } from "@/components/Login";
+import Auth from "@/pages/Auth";
 import { Layout } from "@/components/Layout";
 import { Dashboard } from "@/components/Dashboard";
 import { Funcionarios } from "@/pages/Funcionarios";
@@ -33,13 +33,19 @@ const AppContent = () => {
   }
   
   if (!user) {
-    return <Login />;
+    return (
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="*" element={<Auth />} />
+      </Routes>
+    );
   }
   
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/auth" element={<Auth />} />
         <Route path="/funcionarios" element={<Funcionarios />} />
         <Route path="/clientes" element={<Clientes />} />
         <Route path="/vacinas" element={<Vacinas />} />
