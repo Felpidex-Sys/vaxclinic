@@ -43,7 +43,7 @@ export const Login: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
             <Syringe className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">VaxClinic</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">VixClinic</h1>
           <p className="text-white/80">Sistema de Gestão de Vacinação</p>
         </div>
 
@@ -95,9 +95,9 @@ export const Login: React.FC = () => {
             <div className="mt-6 p-4 bg-medical-gray/20 rounded-lg">
               <p className="text-sm font-medium mb-2">Contas de teste:</p>
               <div className="text-xs space-y-1 text-muted-foreground">
-                <p><strong>Admin:</strong> admin@vaxclinic.com</p>
-                <p><strong>Funcionário:</strong> funcionario@vaxclinic.com</p>
-                <p><strong>Vacinador:</strong> vacinador@vaxclinic.com</p>
+                <p><strong>Admin:</strong> admin@vixclinic.com</p>
+                <p><strong>Funcionário:</strong> funcionario@vixclinic.com</p>
+                <p><strong>Vacinador:</strong> vacinador@vixclinic.com</p>
                 <p><strong>Senha:</strong> 123456</p>
               </div>
             </div>

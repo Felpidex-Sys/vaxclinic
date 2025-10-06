@@ -22,7 +22,7 @@ const mockEmployees: User[] = [
   {
     id: '1',
     name: 'Dr. Maria Silva',
-    email: 'admin@vaxclinic.com',
+    email: 'admin@vixclinic.com',
     cpf: '123.456.789-00',
     role: 'admin',
     permissions: ['all'],
@@ -32,7 +32,7 @@ const mockEmployees: User[] = [
   {
     id: '2',
     name: 'João Santos',
-    email: 'funcionario@vaxclinic.com',
+    email: 'funcionario@vixclinic.com',
     cpf: '987.654.321-00',
     role: 'funcionario',
     permissions: ['read_clients', 'write_clients', 'read_vaccines'],
@@ -42,7 +42,7 @@ const mockEmployees: User[] = [
   {
     id: '3',
     name: 'Ana Costa',
-    email: 'vacinador@vaxclinic.com',
+    email: 'vacinador@vixclinic.com',
     cpf: '456.789.123-00',
     role: 'vacinador',
     permissions: ['read_clients', 'apply_vaccines', 'read_vaccines'],
@@ -54,7 +54,7 @@ const mockEmployees: User[] = [
 export const Funcionarios: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [employees, setEmployees] = useLocalStorage<User[]>('vaxclinic_employees', mockEmployees);
+  const [employees, setEmployees] = useLocalStorage<User[]>('vixclinic_employees', mockEmployees);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<User | undefined>();

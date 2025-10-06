@@ -61,7 +61,7 @@ const mockClients: Client[] = [
 export const Clientes: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [clients, setClients] = useLocalStorage<Client[]>('vaxclinic_clients', mockClients);
+  const [clients, setClients] = useLocalStorage<Client[]>('vixclinic_clients', mockClients);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();

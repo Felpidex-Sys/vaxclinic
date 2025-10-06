@@ -89,11 +89,11 @@ export const Vacinas: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [vaccines, setVaccines] = useLocalStorage<Vaccine[]>('vaxclinic_vaccines', mockVaccines);
-  const [batches, setBatches] = useLocalStorage<VaccineBatch[]>('vaxclinic_batches', mockBatches);
-  const [clients] = useLocalStorage<Client[]>('vaxclinic_clients', []);
-  const [employees] = useLocalStorage<User[]>('vaxclinic_employees', []);
-  const [vaccinations, setVaccinations] = useLocalStorage<VaccinationRecord[]>('vaxclinic_vaccinations', []);
+  const [vaccines, setVaccines] = useLocalStorage<Vaccine[]>('vixclinic_vaccines', mockVaccines);
+  const [batches, setBatches] = useLocalStorage<VaccineBatch[]>('vixclinic_batches', mockBatches);
+  const [clients] = useLocalStorage<Client[]>('vixclinic_clients', []);
+  const [employees] = useLocalStorage<User[]>('vixclinic_employees', []);
+  const [vaccinations, setVaccinations] = useLocalStorage<VaccinationRecord[]>('vixclinic_vaccinations', []);
   const [searchTerm, setSearchTerm] = useState('');
   const [showApplicationForm, setShowApplicationForm] = useState(false);
 

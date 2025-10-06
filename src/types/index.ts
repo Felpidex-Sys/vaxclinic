@@ -1,6 +1,75 @@
-// VixClinic Types - Following the class diagram specification
+// VixClinic Types - Database Schema Aligned
 
-// Legacy interfaces (to maintain compatibility)
+// Cliente - Aligned with database schema
+export interface Cliente {
+  CPF: number;
+  nomeCompleto: string;
+  dataNasc: string;
+  email?: string;
+  telefone: string;
+  alergias?: string;
+  observacoes?: string;
+}
+
+// Funcionario - Aligned with database schema
+export interface Funcionario {
+  idFuncionario: number;
+  nomeCompleto: string;
+  CPF: string;
+  email: string;
+  telefone?: string;
+  cargo?: string;
+  senha: string;
+  status: 'ATIVO' | 'INATIVO';
+  dataAdmissao?: string;
+}
+
+// Vacina - Aligned with database schema (tipo de vacina)
+export interface Vacina {
+  idVacina: number;
+  nome: string;
+  fabricante?: string;
+  categoria?: 'VIRAL' | 'BACTERIANA' | 'OUTRA';
+  quantidadeDoses?: number;
+  intervaloDoses?: number;
+  descricao?: string;
+  status: 'ATIVA' | 'INATIVA';
+}
+
+// Lote - Aligned with database schema (controla estoque)
+export interface Lote {
+  numLote: number;
+  codigoLote: string;
+  quantidadeInicial: number;
+  quantidadeDisponivel: number;
+  dataValidade: string;
+  Vacina_idVacina: number;
+}
+
+// Agendamento - Aligned with database schema
+export interface Agendamento {
+  idAgendamento: number;
+  dataAgendada: string;
+  status: 'AGENDADO' | 'REALIZADO';
+  observacoes?: string;
+  Cliente_CPF: number;
+  Funcionario_idFuncionario: number;
+  Lote_numLote: number;
+}
+
+// Aplicacao - Aligned with database schema
+export interface Aplicacao {
+  idAplicacao: number;
+  dataAplicacao: string;
+  dose?: number;
+  reacoesAdversas?: string;
+  observacoes?: string;
+  Funcionario_idFuncionario: number;
+  Cliente_CPF: number;
+  Agendamento_idAgendamento: number;
+}
+
+// Legacy interfaces for backward compatibility
 export interface User {
   id: string;
   name: string;
@@ -52,7 +121,7 @@ export interface VaccinationRecord {
   vaccineId: string;
   batchId: string;
   applicationDate: string;
-  appliedBy: string; // User ID
+  appliedBy: string;
   doseNumber: number;
   nextDueDate?: string;
   observations?: string;
@@ -68,90 +137,14 @@ export interface DashboardStats {
   recentVaccinations: VaccinationRecord[];
 }
 
-// New VixClinic interfaces following the class diagram
-export interface Usuario {
-  id: string;
-  nome: string;
-  login: string;
-  senha: string;
-  ativo: boolean;
-  criadoEm: string;
-}
-
-// Funcionario extends Usuario
-export interface Funcionario extends Usuario {
-  tipo: 'funcionario' | 'vacinador';
-  permissoes: string[];
-}
-
-// Administrador extends Usuario  
-export interface Administrador extends Usuario {
-  tipo: 'admin';
-  permissoes: string[];
-}
-
-// Paciente interface following the class diagram
-export interface Paciente {
-  id: string;
-  nome: string;
-  cpf: string;
-  dataNascimento: string;
-  contato: string;
-  email?: string;
-  endereco?: string;
-  alergias?: string;
-  observacoes?: string;
-  criadoEm: string;
-}
-
-// Vacina interface following the class diagram
-export interface Vacina {
-  id: string;
-  nome: string;
-  lote: string;
-  dataValidade: string;
-  quantidadeEstoque: number;
-  fabricante: string;
-  descricao?: string;
-  doencaAlvo?: string;
-  dosesNecessarias: number;
-  criadoEm: string;
-}
-
-// Agendamento interface following the class diagram
-export interface Agendamento {
-  id: string;
-  pacienteId: string;
-  funcionarioId: string;
-  vacinaId: string;
-  dataHora: string;
-  status: 'Agendado' | 'Cancelado' | 'Concluido';
-  observacoes?: string;
-  criadoEm: string;
-}
-
-// Aplicacao interface following the class diagram
-export interface Aplicacao {
-  id: string;
-  pacienteId: string;
-  vacinaId: string;
-  agendamentoId?: string;
-  dataAplicacao: string;
-  aplicadoPor: string; // User ID
-  numeroDose: number;
-  proximaDataDevida?: string;
-  observacoes?: string;
-  criadoEm: string;
-}
-
-// New Dashboard Stats interface
+// Dashboard Stats interface
 export interface DashboardStatsVix {
-  totalPacientes: number;
+  totalClientes: number;
   totalFuncionarios: number;
   totalVacinas: number;
-  vacinacaoHoje: number;
+  vacinacoesHoje: number;
   agendamentosHoje: number;
-  vacinasVencendo: Vacina[];
+  lotesVencendo: Lote[];
   aplicacoesRecentes: Aplicacao[];
   agendamentosProximos: Agendamento[];
 }

@@ -35,7 +35,7 @@ const roleTemplates = {
 };
 
 export const Permissoes: React.FC = () => {
-  const [employees, setEmployees] = useLocalStorage<User[]>('vaxclinic_employees', []);
+  const [employees, setEmployees] = useLocalStorage<User[]>('vixclinic_employees', []);
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 

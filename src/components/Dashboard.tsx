@@ -20,12 +20,12 @@ import { useNavigate } from 'react-router-dom';
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [clients] = useLocalStorage<Client[]>('vaxclinic_clients', []);
-  const [employees] = useLocalStorage<User[]>('vaxclinic_employees', []);
-  const [vaccines] = useLocalStorage<Vaccine[]>('vaxclinic_vaccines', []);
-  const [batches] = useLocalStorage<VaccineBatch[]>('vaxclinic_batches', []);
+  const [clients] = useLocalStorage<Client[]>('vixclinic_clients', []);
+  const [employees] = useLocalStorage<User[]>('vixclinic_employees', []);
+  const [vaccines] = useLocalStorage<Vaccine[]>('vixclinic_vaccines', []);
+  const [batches] = useLocalStorage<VaccineBatch[]>('vixclinic_batches', []);
   const [agendamentos] = useLocalStorage<Agendamento[]>('vixclinic_agendamentos', []);
-  const [vaccinations] = useLocalStorage<VaccinationRecord[]>('vaxclinic_vaccinations', []);
+  const [vaccinations] = useLocalStorage<VaccinationRecord[]>('vixclinic_vaccinations', []);
 
   const [stats, setStats] = useState<DashboardStats>({
     totalClients: 0,

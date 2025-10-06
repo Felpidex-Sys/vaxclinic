@@ -18,11 +18,11 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Client, User, Vaccine, VaccinationRecord, VaccineBatch } from '@/types';
 
 export const Relatorios: React.FC = () => {
-  const [clients] = useLocalStorage<Client[]>('vaxclinic_clients', []);
-  const [employees] = useLocalStorage<User[]>('vaxclinic_employees', []);
-  const [vaccines] = useLocalStorage<Vaccine[]>('vaxclinic_vaccines', []);
-  const [vaccinations] = useLocalStorage<VaccinationRecord[]>('vaxclinic_vaccinations', []);
-  const [batches] = useLocalStorage<VaccineBatch[]>('vaxclinic_batches', []);
+  const [clients] = useLocalStorage<Client[]>('vixclinic_clients', []);
+  const [employees] = useLocalStorage<User[]>('vixclinic_employees', []);
+  const [vaccines] = useLocalStorage<Vaccine[]>('vixclinic_vaccines', []);
+  const [vaccinations] = useLocalStorage<VaccinationRecord[]>('vixclinic_vaccinations', []);
+  const [batches] = useLocalStorage<VaccineBatch[]>('vixclinic_batches', []);
   
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');

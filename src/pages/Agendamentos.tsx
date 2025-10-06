@@ -8,152 +8,89 @@ import {
   Calendar,
   Plus,
   Search,
-  Filter,
   Clock,
   CheckCircle,
   XCircle,
   User,
-  Syringe,
   Edit,
   Trash2
 } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Agendamento, Client, Vaccine, User as UserType } from '@/types';
+import { Agendamento, Client, VaccineBatch, User as UserType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { AgendamentoForm } from '@/components/forms/AgendamentoForm';
 
 export const Agendamentos: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [agendamentos, setAgendamentos] = useLocalStorage<Agendamento[]>('vixclinic_agendamentos', []);
-  const [clients] = useLocalStorage<Client[]>('vaxclinic_clients', []);
-  const [vaccines] = useLocalStorage<Vaccine[]>('vaxclinic_vaccines', []);
-  const [employees] = useLocalStorage<UserType[]>('vaxclinic_employees', []);
+  const [clients] = useLocalStorage<Client[]>('vixclinic_clients', []);
+  const [batches] = useLocalStorage<VaccineBatch[]>('vixclinic_batches', []);
+  const [employees] = useLocalStorage<UserType[]>('vixclinic_employees', []);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAgendamento, setEditingAgendamento] = useState<Agendamento | null>(null);
-  
-  const [formData, setFormData] = useState({
-    pacienteId: '',
-    funcionarioId: user?.id || '',
-    vacinaId: '',
-    dataHora: '',
-    observacoes: '',
-  });
-
-  // Mock initial data if empty
-  useEffect(() => {
-    if (agendamentos.length === 0) {
-      const mockAgendamentos: Agendamento[] = [
-        {
-          id: '1',
-          pacienteId: '1',
-          funcionarioId: '1',
-          vacinaId: '1',
-          dataHora: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-          status: 'Agendado',
-          observacoes: 'Primeira dose da vacina',
-          criadoEm: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          pacienteId: '2',
-          funcionarioId: '2',
-          vacinaId: '2',
-          dataHora: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
-          status: 'Agendado',
-          observacoes: 'Segunda dose - reforço',
-          criadoEm: new Date().toISOString(),
-        },
-      ];
-      setAgendamentos(mockAgendamentos);
-    }
-  }, [agendamentos.length, setAgendamentos]);
 
   const filteredAgendamentos = agendamentos.filter(agendamento => {
-    const client = clients.find(c => c.id === agendamento.pacienteId);
-    const vaccine = vaccines.find(v => v.id === agendamento.vacinaId);
+    const client = clients.find(c => parseInt(c.cpf.replace(/\D/g, '')) === agendamento.Cliente_CPF);
+    const batch = batches.find(b => parseInt(b.id) === agendamento.Lote_numLote);
     
     const matchesSearch = !searchTerm || 
-      client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vaccine?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      client?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || agendamento.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.pacienteId || !formData.vacinaId || !formData.dataHora) {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const agendamentoData: Agendamento = {
-      id: editingAgendamento?.id || Date.now().toString(),
-      ...formData,
-      status: 'Agendado',
-      criadoEm: editingAgendamento?.criadoEm || new Date().toISOString(),
-    };
-
+  const handleSaveAgendamento = (agendamentoData: Omit<Agendamento, 'idAgendamento'>) => {
     if (editingAgendamento) {
-      setAgendamentos(prev => prev.map(a => a.id === editingAgendamento.id ? agendamentoData : a));
+      const updatedAgendamentos = agendamentos.map(a =>
+        a.idAgendamento === editingAgendamento.idAgendamento
+          ? { ...agendamentoData, idAgendamento: editingAgendamento.idAgendamento }
+          : a
+      );
+      setAgendamentos(updatedAgendamentos);
       toast({
         title: "Agendamento atualizado",
         description: "O agendamento foi atualizado com sucesso.",
       });
     } else {
-      setAgendamentos(prev => [...prev, agendamentoData]);
+      const newAgendamento: Agendamento = {
+        ...agendamentoData,
+        idAgendamento: Date.now(),
+      };
+      setAgendamentos([...agendamentos, newAgendamento]);
       toast({
         title: "Agendamento criado",
         description: "O agendamento foi criado com sucesso.",
       });
     }
-
-    setIsFormOpen(false);
     setEditingAgendamento(null);
-    setFormData({
-      pacienteId: '',
-      funcionarioId: user?.id || '',
-      vacinaId: '',
-      dataHora: '',
-      observacoes: '',
-    });
   };
 
   const handleEdit = (agendamento: Agendamento) => {
     setEditingAgendamento(agendamento);
-    setFormData({
-      pacienteId: agendamento.pacienteId,
-      funcionarioId: agendamento.funcionarioId,
-      vacinaId: agendamento.vacinaId,
-      dataHora: agendamento.dataHora.split('T')[0] + 'T' + agendamento.dataHora.split('T')[1].slice(0, 5),
-      observacoes: agendamento.observacoes || '',
-    });
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setAgendamentos(prev => prev.filter(a => a.id !== id));
-    toast({
-      title: "Agendamento excluído",
-      description: "O agendamento foi excluído com sucesso.",
-    });
+  const handleDelete = (idAgendamento: number) => {
+    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+      setAgendamentos(prev => prev.filter(a => a.idAgendamento !== idAgendamento));
+      toast({
+        title: "Agendamento excluído",
+        description: "O agendamento foi excluído com sucesso.",
+      });
+    }
   };
 
-  const updateStatus = (id: string, status: Agendamento['status']) => {
-    setAgendamentos(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+  const updateStatus = (idAgendamento: number, status: Agendamento['status']) => {
+    setAgendamentos(prev => prev.map(a => 
+      a.idAgendamento === idAgendamento ? { ...a, status } : a
+    ));
     toast({
       title: "Status atualizado",
       description: `Agendamento marcado como ${status.toLowerCase()}.`,
@@ -162,12 +99,10 @@ export const Agendamentos: React.FC = () => {
 
   const getStatusBadge = (status: Agendamento['status']) => {
     switch (status) {
-      case 'Agendado':
+      case 'AGENDADO':
         return <Badge className="bg-blue-100 text-blue-800"><Clock className="w-3 h-3 mr-1" />Agendado</Badge>;
-      case 'Concluido':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Concluído</Badge>;
-      case 'Cancelado':
-        return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Cancelado</Badge>;
+      case 'REALIZADO':
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Realizado</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -186,11 +121,57 @@ export const Agendamentos: React.FC = () => {
         
         <Button 
           className="medical-gradient text-white"
-          onClick={() => setIsFormOpen(true)}
+          onClick={() => {
+            setEditingAgendamento(null);
+            setIsFormOpen(true);
+          }}
         >
           <Plus className="w-4 h-4 mr-2" />
           Novo Agendamento
         </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="card-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-medical-blue" />
+              <div>
+                <p className="text-2xl font-bold text-medical-blue">{agendamentos.length}</p>
+                <p className="text-sm text-muted-foreground">Total de Agendamentos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="card-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-2xl font-bold text-blue-600">
+                  {agendamentos.filter(a => a.status === 'AGENDADO').length}
+                </p>
+                <p className="text-sm text-muted-foreground">Agendados</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="card-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <div>
+                <p className="text-2xl font-bold text-green-600">
+                  {agendamentos.filter(a => a.status === 'REALIZADO').length}
+                </p>
+                <p className="text-sm text-muted-foreground">Realizados</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -206,7 +187,7 @@ export const Agendamentos: React.FC = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   id="search"
-                  placeholder="Buscar por cliente ou vacina..."
+                  placeholder="Buscar por cliente..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -216,17 +197,15 @@ export const Agendamentos: React.FC = () => {
             
             <div className="w-full sm:w-48">
               <Label>Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Agendado">Agendado</SelectItem>
-                  <SelectItem value="Concluido">Concluído</SelectItem>
-                  <SelectItem value="Cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
+              <select 
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="all">Todos</option>
+                <option value="AGENDADO">Agendado</option>
+                <option value="REALIZADO">Realizado</option>
+              </select>
             </div>
           </div>
         </CardContent>
@@ -259,12 +238,12 @@ export const Agendamentos: React.FC = () => {
           </Card>
         ) : (
           filteredAgendamentos.map((agendamento) => {
-            const client = clients.find(c => c.id === agendamento.pacienteId);
-            const vaccine = vaccines.find(v => v.id === agendamento.vacinaId);
-            const funcionario = employees.find(e => e.id === agendamento.funcionarioId);
+            const client = clients.find(c => parseInt(c.cpf.replace(/\D/g, '')) === agendamento.Cliente_CPF);
+            const batch = batches.find(b => parseInt(b.id) === agendamento.Lote_numLote);
+            const funcionario = employees.find(e => parseInt(e.id) === agendamento.Funcionario_idFuncionario);
             
             return (
-              <Card key={agendamento.id} className="card-shadow">
+              <Card key={agendamento.idAgendamento} className="card-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -273,7 +252,7 @@ export const Agendamentos: React.FC = () => {
                         <div>
                           <h3 className="font-semibold text-lg">{client?.name || 'Cliente não encontrado'}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {vaccine?.name || 'Vacina não encontrada'} • {vaccine?.manufacturer}
+                            Lote {batch?.batchNumber || 'não encontrado'}
                           </p>
                         </div>
                       </div>
@@ -282,8 +261,8 @@ export const Agendamentos: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-muted-foreground" />
                           <span>
-                            {new Date(agendamento.dataHora).toLocaleDateString('pt-BR')} às{' '}
-                            {new Date(agendamento.dataHora).toLocaleTimeString('pt-BR', { 
+                            {new Date(agendamento.dataAgendada).toLocaleDateString('pt-BR')} às{' '}
+                            {new Date(agendamento.dataAgendada).toLocaleTimeString('pt-BR', { 
                               hour: '2-digit', 
                               minute: '2-digit' 
                             })}
@@ -307,25 +286,15 @@ export const Agendamentos: React.FC = () => {
                       {getStatusBadge(agendamento.status)}
                       
                       <div className="flex gap-2">
-                        {agendamento.status === 'Agendado' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 border-green-600 hover:bg-green-50"
-                              onClick={() => updateStatus(agendamento.id, 'Concluido')}
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 border-red-600 hover:bg-red-50"
-                              onClick={() => updateStatus(agendamento.id, 'Cancelado')}
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </Button>
-                          </>
+                        {agendamento.status === 'AGENDADO' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                            onClick={() => updateStatus(agendamento.idAgendamento, 'REALIZADO')}
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </Button>
                         )}
                         
                         <Button
@@ -340,7 +309,7 @@ export const Agendamentos: React.FC = () => {
                           size="sm"
                           variant="outline"
                           className="text-red-600 border-red-600 hover:bg-red-50"
-                          onClick={() => handleDelete(agendamento.id)}
+                          onClick={() => handleDelete(agendamento.idAgendamento)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -354,130 +323,20 @@ export const Agendamentos: React.FC = () => {
         )}
       </div>
 
-      {/* Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={(open) => {
-        setIsFormOpen(open);
-        if (!open) {
-          setEditingAgendamento(null);
-          setFormData({
-            pacienteId: '',
-            funcionarioId: user?.id || '',
-            vacinaId: '',
-            dataHora: '',
-            observacoes: '',
-          });
-        }
-      }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingAgendamento ? 'Editar Agendamento' : 'Novo Agendamento'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingAgendamento 
-                ? 'Atualize as informações do agendamento.'
-                : 'Crie um novo agendamento de vacinação.'
-              }
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="cliente">Cliente *</Label>
-                <Select 
-                  value={formData.pacienteId} 
-                  onValueChange={(value) => setFormData({ ...formData, pacienteId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name} - {client.cpf}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="vacina">Vacina *</Label>
-                <Select 
-                  value={formData.vacinaId} 
-                  onValueChange={(value) => setFormData({ ...formData, vacinaId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a vacina" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vaccines.map((vaccine) => (
-                      <SelectItem key={vaccine.id} value={vaccine.id}>
-                        {vaccine.name} - {vaccine.manufacturer}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="funcionario">Funcionário *</Label>
-                <Select 
-                  value={formData.funcionarioId} 
-                  onValueChange={(value) => setFormData({ ...formData, funcionarioId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o funcionário" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name} - {employee.role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="dataHora">Data e Hora *</Label>
-                <Input
-                  id="dataHora"
-                  type="datetime-local"
-                  value={formData.dataHora}
-                  onChange={(e) => setFormData({ ...formData, dataHora: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="observacoes">Observações</Label>
-              <Textarea
-                id="observacoes"
-                value={formData.observacoes}
-                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                placeholder="Observações sobre o agendamento"
-                rows={3}
-              />
-            </div>
-            
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFormOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" className="medical-gradient text-white">
-                {editingAgendamento ? 'Atualizar' : 'Criar'} Agendamento
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Form Modal */}
+      <AgendamentoForm
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) setEditingAgendamento(null);
+        }}
+        clients={clients}
+        batches={batches}
+        employees={employees}
+        onSave={handleSaveAgendamento}
+        currentUserId={user?.id || '1'}
+        editingAgendamento={editingAgendamento}
+      />
     </div>
   );
 };

@@ -23,7 +23,7 @@ const mockUsers: User[] = [
   {
     id: '1',
     name: 'Dr. Maria Silva',
-    email: 'admin@vaxclinic.com',
+    email: 'admin@vixclinic.com',
     cpf: '123.456.789-00',
     role: 'admin',
     permissions: ['all'],
@@ -33,7 +33,7 @@ const mockUsers: User[] = [
   {
     id: '2',
     name: 'João Santos',
-    email: 'funcionario@vaxclinic.com',
+    email: 'funcionario@vixclinic.com',
     cpf: '987.654.321-00',
     role: 'funcionario',
     permissions: ['read_clients', 'write_clients', 'read_vaccines'],
@@ -43,7 +43,7 @@ const mockUsers: User[] = [
   {
     id: '3',
     name: 'Ana Costa',
-    email: 'vacinador@vaxclinic.com',
+    email: 'vacinador@vixclinic.com',
     cpf: '456.789.123-00',
     role: 'vacinador',
     permissions: ['read_clients', 'apply_vaccines', 'read_vaccines'],
@@ -58,7 +58,7 @@ export const useAuthState = () => {
 
   useEffect(() => {
     // Check for stored auth on mount
-    const storedUser = localStorage.getItem('vaxclinic_user');
+    const storedUser = localStorage.getItem('vixclinic_user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -73,7 +73,7 @@ export const useAuthState = () => {
     
     if (foundUser && password === '123456') { // Simple mock password
       setUser(foundUser);
-      localStorage.setItem('vaxclinic_user', JSON.stringify(foundUser));
+      localStorage.setItem('vixclinic_user', JSON.stringify(foundUser));
       setIsLoading(false);
       return true;
     }
@@ -84,7 +84,7 @@ export const useAuthState = () => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('vaxclinic_user');
+    localStorage.removeItem('vixclinic_user');
   };
 
   return { user, login, logout, isLoading };

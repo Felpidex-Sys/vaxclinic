@@ -5,16 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Client, Vaccine, User, Agendamento } from '@/types';
+import { Client, Vaccine, User, Agendamento, Lote, VaccineBatch } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 interface AgendamentoFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clients: Client[];
-  vaccines: Vaccine[];
+  batches: VaccineBatch[];
   employees: User[];
-  onSave: (agendamento: Omit<Agendamento, 'id' | 'criadoEm'>) => void;
+  onSave: (agendamento: Omit<Agendamento, 'idAgendamento'>) => void;
   currentUserId: string;
   editingAgendamento?: Agendamento | null;
 }
@@ -23,7 +23,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
   open,
   onOpenChange,
   clients,
-  vaccines,
+  batches,
   employees,
   onSave,
   currentUserId,
@@ -31,17 +31,17 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
 }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    pacienteId: editingAgendamento?.pacienteId || '',
-    funcionarioId: editingAgendamento?.funcionarioId || currentUserId,
-    vacinaId: editingAgendamento?.vacinaId || '',
-    dataHora: editingAgendamento?.dataHora.split('T')[0] + 'T' + editingAgendamento?.dataHora.split('T')[1].slice(0, 5) || '',
+    Cliente_CPF: editingAgendamento?.Cliente_CPF || 0,
+    Funcionario_idFuncionario: editingAgendamento?.Funcionario_idFuncionario || parseInt(currentUserId) || 0,
+    Lote_numLote: editingAgendamento?.Lote_numLote || 0,
+    dataAgendada: editingAgendamento?.dataAgendada ? editingAgendamento.dataAgendada.split('T')[0] + 'T' + editingAgendamento.dataAgendada.split('T')[1].slice(0, 5) : '',
     observacoes: editingAgendamento?.observacoes || '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.pacienteId || !formData.vacinaId || !formData.dataHora) {
+    if (!formData.Cliente_CPF || !formData.Lote_numLote || !formData.dataAgendada) {
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -50,19 +50,22 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
       return;
     }
 
-    const agendamento: Omit<Agendamento, 'id' | 'criadoEm'> = {
-      ...formData,
-      dataHora: new Date(formData.dataHora).toISOString(),
-      status: 'Agendado',
+    const agendamento: Omit<Agendamento, 'idAgendamento'> = {
+      Cliente_CPF: formData.Cliente_CPF,
+      Funcionario_idFuncionario: formData.Funcionario_idFuncionario,
+      Lote_numLote: formData.Lote_numLote,
+      dataAgendada: new Date(formData.dataAgendada).toISOString(),
+      status: 'AGENDADO',
+      observacoes: formData.observacoes,
     };
 
     onSave(agendamento);
     onOpenChange(false);
     setFormData({
-      pacienteId: '',
-      funcionarioId: currentUserId,
-      vacinaId: '',
-      dataHora: '',
+      Cliente_CPF: 0,
+      Funcionario_idFuncionario: parseInt(currentUserId) || 0,
+      Lote_numLote: 0,
+      dataAgendada: '',
       observacoes: '',
     });
     
@@ -94,15 +97,15 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
             <div>
               <Label htmlFor="cliente">Cliente *</Label>
               <Select 
-                value={formData.pacienteId} 
-                onValueChange={(value) => setFormData({ ...formData, pacienteId: value })}
+                value={formData.Cliente_CPF.toString()} 
+                onValueChange={(value) => setFormData({ ...formData, Cliente_CPF: parseInt(value) })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
+                    <SelectItem key={client.id} value={client.cpf}>
                       {client.name} - {client.cpf}
                     </SelectItem>
                   ))}
@@ -111,18 +114,18 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="vacina">Vacina *</Label>
+              <Label htmlFor="lote">Lote da Vacina *</Label>
               <Select 
-                value={formData.vacinaId} 
-                onValueChange={(value) => setFormData({ ...formData, vacinaId: value })}
+                value={formData.Lote_numLote.toString()} 
+                onValueChange={(value) => setFormData({ ...formData, Lote_numLote: parseInt(value) })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a vacina" />
+                  <SelectValue placeholder="Selecione o lote" />
                 </SelectTrigger>
                 <SelectContent>
-                  {vaccines.map((vaccine) => (
-                    <SelectItem key={vaccine.id} value={vaccine.id}>
-                      {vaccine.name} - {vaccine.manufacturer}
+                  {batches.map((batch) => (
+                    <SelectItem key={batch.id} value={batch.id}>
+                      Lote {batch.batchNumber} - {batch.remainingQuantity} doses
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -132,8 +135,8 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
             <div>
               <Label htmlFor="funcionario">Funcionário *</Label>
               <Select 
-                value={formData.funcionarioId} 
-                onValueChange={(value) => setFormData({ ...formData, funcionarioId: value })}
+                value={formData.Funcionario_idFuncionario.toString()} 
+                onValueChange={(value) => setFormData({ ...formData, Funcionario_idFuncionario: parseInt(value) })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o funcionário" />
@@ -149,12 +152,12 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="dataHora">Data e Hora *</Label>
+              <Label htmlFor="dataAgendada">Data e Hora *</Label>
               <Input
-                id="dataHora"
+                id="dataAgendada"
                 type="datetime-local"
-                value={formData.dataHora}
-                onChange={(e) => setFormData({ ...formData, dataHora: e.target.value })}
+                value={formData.dataAgendada}
+                onChange={(e) => setFormData({ ...formData, dataAgendada: e.target.value })}
                 required
               />
             </div>
