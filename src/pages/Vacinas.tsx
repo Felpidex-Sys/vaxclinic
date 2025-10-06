@@ -18,6 +18,9 @@ import {
 import { Vaccine, VaccineBatch, Client, User, VaccinationRecord } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { VaccineApplicationForm } from '@/components/forms/VaccineApplicationForm';
+import { VaccineForm } from '@/components/forms/VaccineForm';
+import { BatchForm } from '@/components/forms/BatchForm';
+import { BatchManagementDialog } from '@/components/forms/BatchManagementDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +37,12 @@ export const Vacinas: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [showVaccineForm, setShowVaccineForm] = useState(false);
+  const [showBatchForm, setShowBatchForm] = useState(false);
+  const [showBatchManagement, setShowBatchManagement] = useState(false);
+  const [editingVaccine, setEditingVaccine] = useState<any>(null);
+  const [editingBatch, setEditingBatch] = useState<any>(null);
+  const [selectedVaccine, setSelectedVaccine] = useState<Vaccine | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -182,6 +191,108 @@ export const Vacinas: React.FC = () => {
     setBatches(updatedBatches);
   };
 
+  const handleSaveVaccine = async (data: any) => {
+    try {
+      if (editingVaccine) {
+        const { error } = await supabase
+          .from('vacina')
+          .update({
+            nome: data.nome,
+            fabricante: data.fabricante,
+            categoria: data.categoria,
+            descricao: data.descricao,
+            quantidadedoses: data.quantidadedoses,
+            intervalodoses: data.intervalodoses,
+          })
+          .eq('idvacina', editingVaccine.idvacina);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Vacina atualizada',
+          description: 'Os dados foram atualizados com sucesso.',
+        });
+      } else {
+        const { error } = await supabase
+          .from('vacina')
+          .insert({
+            nome: data.nome,
+            fabricante: data.fabricante,
+            categoria: data.categoria,
+            descricao: data.descricao,
+            quantidadedoses: data.quantidadedoses,
+            intervalodoses: data.intervalodoses,
+            status: 'ATIVA',
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: 'Vacina cadastrada',
+          description: 'A vacina foi adicionada com sucesso.',
+        });
+      }
+
+      setEditingVaccine(null);
+      fetchData();
+    } catch (error: any) {
+      console.error('Erro ao salvar vacina:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível salvar a vacina.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSaveBatch = async (data: any) => {
+    try {
+      if (editingBatch) {
+        const { error } = await supabase
+          .from('lote')
+          .update({
+            codigolote: data.codigolote,
+            datavalidade: data.datavalidade,
+          })
+          .eq('numlote', editingBatch.numlote);
+
+        if (error) throw error;
+
+        toast({
+          title: 'Lote atualizado',
+          description: 'Os dados foram atualizados com sucesso.',
+        });
+      } else {
+        const { error } = await supabase
+          .from('lote')
+          .insert({
+            vacina_idvacina: data.vacina_idvacina,
+            codigolote: data.codigolote,
+            quantidadeinicial: data.quantidadeinicial,
+            quantidadedisponivel: data.quantidadeinicial,
+            datavalidade: data.datavalidade,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: 'Lote cadastrado',
+          description: 'O lote foi adicionado com sucesso.',
+        });
+      }
+
+      setEditingBatch(null);
+      fetchData();
+    } catch (error: any) {
+      console.error('Erro ao salvar lote:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível salvar o lote.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleDeleteVaccine = async (vaccine: Vaccine) => {
     if (confirm(`Tem certeza que deseja excluir a vacina ${vaccine.name}?`)) {
       try {
@@ -206,6 +317,49 @@ export const Vacinas: React.FC = () => {
           variant: 'destructive',
         });
       }
+    }
+  };
+
+  const handleDeleteBatch = async (batchId: string) => {
+    try {
+      const { error } = await supabase
+        .from('lote')
+        .delete()
+        .eq('numlote', parseInt(batchId));
+
+      if (error) throw error;
+
+      toast({
+        title: 'Lote excluído',
+        description: 'O lote foi removido do sistema.',
+      });
+
+      fetchData();
+    } catch (error: any) {
+      console.error('Erro ao excluir lote:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível excluir o lote.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleManageBatches = (vaccine: Vaccine) => {
+    setSelectedVaccine(vaccine);
+    setShowBatchManagement(true);
+  };
+
+  const handleEditVaccine = async (vaccine: Vaccine) => {
+    const { data, error } = await supabase
+      .from('vacina')
+      .select('*')
+      .eq('idvacina', parseInt(vaccine.id))
+      .single();
+
+    if (!error && data) {
+      setEditingVaccine(data);
+      setShowVaccineForm(true);
     }
   };
 
@@ -243,7 +397,10 @@ export const Vacinas: React.FC = () => {
           </Button>
           <Button 
             className="medical-gradient text-white"
-            onClick={() => toast({ title: "Em desenvolvimento", description: "Funcionalidade será implementada em breve." })}
+            onClick={() => {
+              setEditingVaccine(null);
+              setShowVaccineForm(true);
+            }}
           >
             <Plus className="w-4 h-4 mr-2" />
             Nova Vacina
@@ -386,7 +543,7 @@ export const Vacinas: React.FC = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => toast({ title: "Em desenvolvimento", description: "Funcionalidade será implementada." })}
+                              onClick={() => handleManageBatches(vaccine)}
                               title="Gerenciar lotes"
                             >
                               <Package className="w-4 h-4" />
@@ -395,7 +552,7 @@ export const Vacinas: React.FC = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => toast({ title: "Em desenvolvimento", description: "Funcionalidade será implementada." })}
+                              onClick={() => handleEditVaccine(vaccine)}
                               title="Editar vacina"
                             >
                               <Edit className="w-4 h-4" />
@@ -531,6 +688,59 @@ export const Vacinas: React.FC = () => {
         batches={batches}
         onSave={handleSaveVaccination}
         appliedBy={user?.id || ''}
+      />
+
+      {/* Vaccine Form */}
+      <VaccineForm
+        open={showVaccineForm}
+        onOpenChange={setShowVaccineForm}
+        vaccine={editingVaccine}
+        onSave={handleSaveVaccine}
+      />
+
+      {/* Batch Management Dialog */}
+      {selectedVaccine && (
+        <BatchManagementDialog
+          open={showBatchManagement}
+          onOpenChange={setShowBatchManagement}
+          vaccine={selectedVaccine}
+          batches={getVaccineBatches(selectedVaccine.id)}
+          onAddBatch={() => {
+            setEditingBatch(null);
+            setShowBatchManagement(false);
+            setShowBatchForm(true);
+          }}
+          onEditBatch={async (batch) => {
+            const { data, error } = await supabase
+              .from('lote')
+              .select('*')
+              .eq('numlote', parseInt(batch.id))
+              .single();
+
+            if (!error && data) {
+              setEditingBatch(data);
+              setShowBatchManagement(false);
+              setShowBatchForm(true);
+            }
+          }}
+          onDeleteBatch={(batchId) => {
+            handleDeleteBatch(batchId);
+          }}
+        />
+      )}
+
+      {/* Batch Form */}
+      <BatchForm
+        open={showBatchForm}
+        onOpenChange={(open) => {
+          setShowBatchForm(open);
+          if (!open && selectedVaccine) {
+            setShowBatchManagement(true);
+          }
+        }}
+        vaccines={vaccines.map(v => ({ id: v.id, name: v.name }))}
+        batch={editingBatch}
+        onSave={handleSaveBatch}
       />
     </div>
   );
