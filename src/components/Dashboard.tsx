@@ -119,13 +119,26 @@ export const Dashboard: React.FC = () => {
         return daysUntilExpiration > 0 && daysUntilExpiration <= 30;
       });
 
+      const mappedRecentVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map(a => ({
+        id: a.idaplicacao.toString(),
+        clientId: a.cliente_cpf,
+        vaccineId: '', 
+        batchId: '', 
+        appliedBy: a.funcionario_idfuncionario.toString(),
+        applicationDate: a.dataaplicacao,
+        doseNumber: a.dose || 1,
+        observations: a.observacoes || '',
+        adverseReactions: a.reacoesadversas || '',
+        createdAt: a.dataaplicacao,
+      }));
+
       setStats({
         totalClients: mappedClients.length,
         totalEmployees: mappedEmployees.length,
         totalVaccines: mappedVaccines.length,
         vaccinationsToday: vacinacoesHoje,
         expiringBatches: lotesVencendo,
-        recentVaccinations: [],
+        recentVaccinations: mappedRecentVaccinations,
       });
     } catch (error) {
       console.error('Erro ao buscar dados:', error);

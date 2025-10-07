@@ -90,7 +90,7 @@ export const AppSidebar: React.FC = () => {
     const active = isActive(path);
     return active 
       ? 'bg-medical-blue text-white font-medium hover:bg-medical-blue/90' 
-      : 'hover:bg-medical-gray/20 text-sidebar-foreground/90 hover:text-sidebar-foreground';
+      : 'hover:bg-medical-gray/20 text-sidebar-foreground/70 hover:text-sidebar-foreground';
   };
 
   const visibleItems = navigationItems.filter(item => hasPermission(item.permissions));
