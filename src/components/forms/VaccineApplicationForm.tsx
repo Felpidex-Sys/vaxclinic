@@ -62,7 +62,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
         .insert({
           cliente_cpf: formData.clientId,
           funcionario_idfuncionario: parseInt(appliedBy),
-          agendamento_idagendamento: 0, // Aplicação sem agendamento prévio
+          agendamento_idagendamento: null, // Aplicação sem agendamento prévio
           dataaplicacao: formData.applicationDate,
           dose: formData.doseNumber,
           observacoes: formData.notes || null,
