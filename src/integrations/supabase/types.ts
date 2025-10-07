@@ -68,7 +68,7 @@ export type Database = {
       }
       aplicacao: {
         Row: {
-          agendamento_idagendamento: number
+          agendamento_idagendamento: number | null
           cliente_cpf: string
           dataaplicacao: string
           dose: number | null
@@ -78,7 +78,7 @@ export type Database = {
           reacoesadversas: string | null
         }
         Insert: {
-          agendamento_idagendamento: number
+          agendamento_idagendamento?: number | null
           cliente_cpf: string
           dataaplicacao: string
           dose?: number | null
@@ -88,7 +88,7 @@ export type Database = {
           reacoesadversas?: string | null
         }
         Update: {
-          agendamento_idagendamento?: number
+          agendamento_idagendamento?: number | null
           cliente_cpf?: string
           dataaplicacao?: string
           dose?: number | null
