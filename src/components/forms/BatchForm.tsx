@@ -25,6 +25,8 @@ const batchSchema = z.object({
   codigolote: z.string().min(1, 'Código do lote é obrigatório'),
   quantidadeinicial: z.number().min(1, 'Quantidade deve ser no mínimo 1'),
   datavalidade: z.string().min(1, 'Data de validade é obrigatória'),
+  precocompra: z.number().min(0, 'Preço de compra deve ser maior ou igual a 0'),
+  precovenda: z.number().min(0, 'Preço de venda deve ser maior ou igual a 0'),
 });
 
 type BatchFormData = z.infer<typeof batchSchema>;
@@ -40,6 +42,8 @@ interface BatchFormProps {
     quantidadeinicial: number;
     quantidadedisponivel: number;
     datavalidade: string;
+    precocompra?: number;
+    precovenda?: number;
   };
   onSave: (data: BatchFormData) => Promise<void>;
 }
@@ -70,6 +74,8 @@ export const BatchForm: React.FC<BatchFormProps> = ({
       setValue('codigolote', batch.codigolote);
       setValue('quantidadeinicial', batch.quantidadeinicial);
       setValue('datavalidade', batch.datavalidade);
+      setValue('precocompra', batch.precocompra || 0);
+      setValue('precovenda', batch.precovenda || 0);
     } else {
       reset();
     }
@@ -160,6 +166,42 @@ export const BatchForm: React.FC<BatchFormProps> = ({
             />
             {errors.datavalidade && (
               <p className="text-sm text-destructive">{errors.datavalidade.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="precocompra">Preço de Compra (R$) *</Label>
+            <Input
+              id="precocompra"
+              type="number"
+              step="0.01"
+              min="0"
+              {...register('precocompra', { valueAsNumber: true })}
+              placeholder="Ex: 15.50"
+              disabled={!!batch}
+            />
+            {errors.precocompra && (
+              <p className="text-sm text-destructive">{errors.precocompra.message}</p>
+            )}
+            {batch && (
+              <p className="text-sm text-muted-foreground">
+                O preço de compra não pode ser alterado após o cadastro
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="precovenda">Preço de Venda (R$) *</Label>
+            <Input
+              id="precovenda"
+              type="number"
+              step="0.01"
+              min="0"
+              {...register('precovenda', { valueAsNumber: true })}
+              placeholder="Ex: 25.00"
+            />
+            {errors.precovenda && (
+              <p className="text-sm text-destructive">{errors.precovenda.message}</p>
             )}
           </div>
 

@@ -18,7 +18,7 @@ export type Database = {
         Row: {
           cliente_cpf: string
           dataagendada: string
-          funcionario_idfuncionario: number
+          funcionario_idfuncionario: number | null
           idagendamento: number
           lote_numlote: number
           observacoes: string | null
@@ -27,7 +27,7 @@ export type Database = {
         Insert: {
           cliente_cpf: string
           dataagendada: string
-          funcionario_idfuncionario: number
+          funcionario_idfuncionario?: number | null
           idagendamento?: number
           lote_numlote: number
           observacoes?: string | null
@@ -36,7 +36,7 @@ export type Database = {
         Update: {
           cliente_cpf?: string
           dataagendada?: string
-          funcionario_idfuncionario?: number
+          funcionario_idfuncionario?: number | null
           idagendamento?: number
           lote_numlote?: number
           observacoes?: string | null
@@ -221,6 +221,8 @@ export type Database = {
           codigolote: string
           datavalidade: string
           numlote: number
+          precocompra: number
+          precovenda: number
           quantidadedisponivel: number
           quantidadeinicial: number
           vacina_idvacina: number
@@ -229,6 +231,8 @@ export type Database = {
           codigolote: string
           datavalidade: string
           numlote?: number
+          precocompra?: number
+          precovenda?: number
           quantidadedisponivel: number
           quantidadeinicial: number
           vacina_idvacina: number
@@ -237,6 +241,8 @@ export type Database = {
           codigolote?: string
           datavalidade?: string
           numlote?: number
+          precocompra?: number
+          precovenda?: number
           quantidadedisponivel?: number
           quantidadeinicial?: number
           vacina_idvacina?: number

@@ -34,6 +34,7 @@ export const Vacinas: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
   const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
+  const [agendamentos, setAgendamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showApplicationForm, setShowApplicationForm] = useState(false);
@@ -133,6 +134,15 @@ export const Vacinas: React.FC = () => {
 
       setEmployees(mappedEmployees);
 
+      // Fetch agendamentos
+      const { data: agendamentosData, error: agendamentosError } = await supabase
+        .from('agendamento')
+        .select('*');
+
+      if (agendamentosError) throw agendamentosError;
+
+      setAgendamentos(agendamentosData || []);
+
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
       toast({
@@ -172,6 +182,24 @@ export const Vacinas: React.FC = () => {
   };
 
   const expiringBatches = getExpiringBatches();
+
+  const getScheduledVaccines = () => {
+    return agendamentos.filter(ag => ag.status === 'AGENDADO').length;
+  };
+
+  const getTotalDoses = () => {
+    return batches.reduce((total, batch) => total + batch.remainingQuantity, 0);
+  };
+
+  const getAvailableDoses = () => {
+    const totalDoses = getTotalDoses();
+    const scheduledDoses = getScheduledVaccines();
+    return totalDoses - scheduledDoses;
+  };
+
+  const scheduledVaccines = getScheduledVaccines();
+  const totalDoses = getTotalDoses();
+  const availableDoses = getAvailableDoses();
 
   const handleSaveVaccination = (vaccinationData: Omit<VaccinationRecord, 'id' | 'createdAt'>) => {
     // Add new vaccination record
@@ -253,6 +281,7 @@ export const Vacinas: React.FC = () => {
           .update({
             codigolote: data.codigolote,
             datavalidade: data.datavalidade,
+            precovenda: data.precovenda,
           })
           .eq('numlote', editingBatch.numlote);
 
@@ -271,6 +300,8 @@ export const Vacinas: React.FC = () => {
             quantidadeinicial: data.quantidadeinicial,
             quantidadedisponivel: data.quantidadeinicial,
             datavalidade: data.datavalidade,
+            precocompra: data.precocompra,
+            precovenda: data.precovenda,
           });
 
         if (error) throw error;
@@ -409,7 +440,7 @@ export const Vacinas: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="card-shadow">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -433,16 +464,38 @@ export const Vacinas: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        
+
+        <Card className="card-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-purple-600" />
+              <div>
+                <p className="text-2xl font-bold text-purple-600">{scheduledVaccines}</p>
+                <p className="text-sm text-muted-foreground">Agendadas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="card-shadow">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-600" />
               <div>
-                <p className="text-2xl font-bold text-blue-600">
-                  {batches.reduce((total, batch) => total + batch.remainingQuantity, 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">Doses Disponíveis</p>
+                <p className="text-2xl font-bold text-blue-600">{availableDoses}</p>
+                <p className="text-sm text-muted-foreground">Disponíveis</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-teal-600" />
+              <div>
+                <p className="text-2xl font-bold text-teal-600">{totalDoses}</p>
+                <p className="text-sm text-muted-foreground">Total</p>
               </div>
             </div>
           </CardContent>

@@ -34,7 +34,6 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
   const location = useLocation();
   const [formData, setFormData] = useState({
     Cliente_CPF: editingAgendamento?.Cliente_CPF || 0,
-    Funcionario_idFuncionario: editingAgendamento?.Funcionario_idFuncionario || parseInt(currentUserId) || 0,
     Lote_numLote: editingAgendamento?.Lote_numLote || 0,
     dataAgendada: editingAgendamento?.dataAgendada ? editingAgendamento.dataAgendada.split('T')[0] + 'T' + editingAgendamento.dataAgendada.split('T')[1].slice(0, 5) : '',
     observacoes: editingAgendamento?.observacoes || '',
@@ -45,7 +44,6 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
       setFormData({
         Cliente_CPF: editingAgendamento.Cliente_CPF,
         Lote_numLote: editingAgendamento.Lote_numLote,
-        Funcionario_idFuncionario: editingAgendamento.Funcionario_idFuncionario,
         dataAgendada: editingAgendamento.dataAgendada.split('T')[0] + 'T' + editingAgendamento.dataAgendada.split('T')[1].slice(0, 5),
         observacoes: editingAgendamento.observacoes || '',
       });
@@ -71,7 +69,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
 
     const agendamento: Omit<Agendamento, 'idAgendamento'> = {
       Cliente_CPF: formData.Cliente_CPF,
-      Funcionario_idFuncionario: formData.Funcionario_idFuncionario,
+      Funcionario_idFuncionario: 0, // Será atribuído quando o agendamento for realizado
       Lote_numLote: formData.Lote_numLote,
       dataAgendada: new Date(formData.dataAgendada).toISOString(),
       status: 'AGENDADO',
@@ -82,7 +80,6 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
     onOpenChange(false);
     setFormData({
       Cliente_CPF: 0,
-      Funcionario_idFuncionario: parseInt(currentUserId) || 0,
       Lote_numLote: 0,
       dataAgendada: '',
       observacoes: '',
@@ -145,25 +142,6 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
                   {batches.filter(b => b.quantidadeDisponivel > 0).map((batch) => (
                     <SelectItem key={batch.numLote} value={batch.numLote.toString()}>
                       {batch.codigoLote} - {batch.quantidadeDisponivel} doses disponíveis
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="funcionario">Funcionário *</Label>
-              <Select 
-                value={formData.Funcionario_idFuncionario.toString()} 
-                onValueChange={(value) => setFormData({ ...formData, Funcionario_idFuncionario: parseInt(value) })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o funcionário" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.name} - {employee.role}
                     </SelectItem>
                   ))}
                 </SelectContent>
