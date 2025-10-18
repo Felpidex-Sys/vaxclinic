@@ -1,3 +1,43 @@
+# Node
+node_modules/
+.pnp
+.pnp.js
+.pnp.cjs
+.yarn/
+dist/
+build/
+.parcel-cache/
+.vite/
+*.log
+*.log.*
+*.tmp
+*.temp
+
+# Env
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Bun
+bun.lockb
+
+# .NET
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+*.swp
+*.sln.docstates
+TestResult*/
+*.coverage*
+/.idea/
 # Logs
 logs
 *.log
