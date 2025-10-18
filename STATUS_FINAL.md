@@ -21,7 +21,9 @@
 - ✅ **Dashboard** busca dados da API C#
 - ✅ **Service layer** completo (csharp-api.ts)
 - ✅ **Interceptors** para tratamento de tokens
-- ⚠️ **Páginas de gestão** (Vacinas, Relatórios, Permissões) - ainda com código Supabase antigo
+- ✅ **Todas as páginas** migradas (sem código Supabase)
+- ✅ **Clientes e Funcionários** com CRUD funcional via API C#
+- ⚠️ **Páginas complexas** (Vacinas, Agendamentos, Relatórios) - mostram stats básicos, CRUD completo em desenvolvimento
 
 ### Limpeza Realizada
 - ✅ Removida dependência `@supabase/supabase-js`
@@ -29,6 +31,7 @@
 - ✅ Deletada pasta `src/integrations/supabase/`
 - ✅ Removido MockController.cs (temporário)
 - ✅ Removidos guias temporários (MIGRATION_*.md)
+- ✅ **Todas as referências ao Supabase removidas do código fonte**
 - ✅ Criado DATABASE_SETUP.md completo
 - ✅ Atualizado README.md com branding VaxClinic
 
@@ -74,44 +77,44 @@ dotnet ef database update --startup-project ../VixClinic.API
 - ✅ Índices e constraints aplicados
 - ✅ Triggers para stock control criados (automático via EF)
 
-### 2. Migrar Páginas Frontend Restantes (OPCIONAL)
+### 2. Implementar CRUD Completo nas Páginas Simplificadas (OPCIONAL)
 
-Alguns componentes ainda têm código Supabase antigo. **Eles NÃO afetam o funcionamento do Login/Dashboard**, mas precisam ser migrados para usar a API C#:
+**✅ Páginas com CRUD funcional:**
+- `src/pages/Clientes.tsx` - ✅ CRUD completo via clienteService
+- `src/pages/Funcionarios.tsx` - ✅ CRUD completo via funcionarioService
+- `src/pages/Dashboard.tsx` - ✅ Estatísticas via dashboardService
 
-**Arquivos que precisam ser atualizados:**
-- `src/pages/Vacinas.tsx` - Gestão de vacinas/lotes/agendamentos/aplicações
-- `src/pages/Relatorios.tsx` - Relatórios e exports
-- `src/pages/Permissoes.tsx` - Gestão de permissões de funcionários
-- `src/pages/Clientes.tsx` - Gestão de clientes (verificar se já migrado)
-- `src/pages/Funcionarios.tsx` - Gestão de funcionários (verificar se já migrado)
-- `src/pages/Agendamentos.tsx` - Gestão de agendamentos (verificar se já migrado)
+**⚠️ Páginas simplificadas (mostram apenas estatísticas básicas):**
+- `src/pages/Vacinas.tsx` - Mostra totais, CRUD em desenvolvimento
+- `src/pages/Agendamentos.tsx` - Mostra contadores, CRUD em desenvolvimento
+- `src/pages/Relatorios.tsx` - Página "em desenvolvimento"
+- `src/pages/Permissoes.tsx` - Página "em desenvolvimento"
+- `src/pages/Auth.tsx` - Redireciona para login
 
-**Como migrar cada página:**
-1. Remover import do supabase: `import { supabase } from '@/integrations/supabase/client'`
-2. Adicionar import da API: `import { vacinaService, loteService, etc } from '@/lib/csharp-api'`
-3. Substituir chamadas `supabase.from('tabela').select()` por `service.getAll()`
-4. Substituir `supabase.from('tabela').insert()` por `service.create()`
-5. Substituir `supabase.from('tabela').update()` por `service.update()`
-6. Substituir `supabase.from('tabela').delete()` por `service.delete()`
+**Para implementar CRUD completo nessas páginas:**
 
-**Exemplo prático:**
-
-**ANTES (Supabase):**
+Você pode copiar a estrutura de `Clientes.tsx` ou `Funcionarios.tsx` como exemplo:
 ```typescript
-const { data, error } = await supabase
-  .from('vacina')
-  .select('*')
-  .eq('status', 'ATIVA');
+// 1. Import do service
+import { vacinaService } from '@/lib/csharp-api';
 
-if (error) throw error;
-setVacinas(data);
+// 2. Fetch de dados
+const fetchVacinas = async () => {
+  const data = await vacinaService.getAll();
+  setVacinas(data);
+};
+
+// 3. Create
+await vacinaService.create({ nome: 'Nova Vacina', ... });
+
+// 4. Update
+await vacinaService.update(id, { nome: 'Vacina Atualizada', ... });
+
+// 5. Delete
+await vacinaService.delete(id);
 ```
 
-**DEPOIS (C# API):**
-```typescript
-const vacinas = await vacinaService.getAll();
-setVacinas(vacinas.filter(v => v.status === 'ATIVA'));
-```
+Todos os services estão prontos em `src/lib/csharp-api.ts` e funcionam com o backend C#.
 
 ### 3. Seed Inicial (OPCIONAL)
 
