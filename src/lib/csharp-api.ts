@@ -82,8 +82,7 @@ export interface Aplicacao {
 // ==================== AUTH ====================
 export const authService = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
-    // Usar endpoint mock até banco estar configurado
-    const response = await api.post<LoginResponse>('/mock/login', {
+    const response = await api.post<LoginResponse>('/auth/login', {
       email,
       password,
     });
@@ -117,31 +116,31 @@ export const authService = {
 // ==================== CLIENTES ====================
 export const clienteService = {
   getAll: async (): Promise<Cliente[]> => {
-    const response = await api.get<Cliente[]>('/mock/clientes');
+    const response = await api.get<Cliente[]>('/clientes');
     return response.data;
   },
 
   getByCpf: async (cpf: string): Promise<Cliente> => {
-    const response = await api.get<Cliente>(`/mock/clientes/${cpf}`);
+    const response = await api.get<Cliente>(`/clientes/${cpf}`);
     return response.data;
   },
 
   create: async (cliente: Cliente): Promise<Cliente> => {
-    const response = await api.post<Cliente>('/mock/clientes', cliente);
+    const response = await api.post<Cliente>('/clientes', cliente);
     return response.data;
   },
 
   update: async (cpf: string, cliente: Cliente): Promise<Cliente> => {
-    const response = await api.put<Cliente>(`/mock/clientes/${cpf}`, cliente);
+    const response = await api.put<Cliente>(`/clientes/${cpf}`, cliente);
     return response.data;
   },
 
   delete: async (cpf: string): Promise<void> => {
-    await api.delete(`/mock/clientes/${cpf}`);
+    await api.delete(`/clientes/${cpf}`);
   },
 
   getStats: async (): Promise<{ total: number; ativos: number; inativos: number }> => {
-    const response = await api.get('/mock/clientes/stats');
+    const response = await api.get('/clientes/stats');
     return response.data;
   },
 };
