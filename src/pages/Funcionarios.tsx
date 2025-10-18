@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { EmployeeForm } from '@/components/forms/EmployeeForm';
 import { useToast } from '@/hooks/use-toast';
 import { displayCPF } from '@/lib/validations';
-import { supabase } from '@/integrations/supabase/client';
+import { funcionarioService } from '@/lib/csharp-api';
 
 export const Funcionarios: React.FC = () => {
   const navigate = useNavigate();
@@ -34,16 +34,11 @@ export const Funcionarios: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
-      const { data, error } = await supabase
-        .from('funcionario')
-        .select('*')
-        .order('nomecompleto', { ascending: true });
-
-      if (error) throw error;
+      const data = await funcionarioService.getAll();
 
       const mappedEmployees: User[] = (data || []).map(func => ({
-        id: func.idfuncionario.toString(),
-        name: func.nomecompleto,
+        id: func.idFuncionario?.toString() || '',
+        name: func.nomeCompleto,
         email: func.email,
         cpf: func.cpf,
         role: (func.cargo || 'funcionario') as 'admin' | 'funcionario' | 'vacinador',
@@ -92,35 +87,28 @@ export const Funcionarios: React.FC = () => {
   const handleSaveEmployee = async (employeeData: Omit<User, 'id' | 'createdAt'>) => {
     try {
       if (editingEmployee) {
-        const { error } = await supabase
-          .from('funcionario')
-          .update({
-            nomecompleto: employeeData.name,
-            email: employeeData.email,
-            cargo: employeeData.role,
-            status: employeeData.active ? 'ATIVO' : 'INATIVO',
-          })
-          .eq('idfuncionario', parseInt(editingEmployee.id));
-
-        if (error) throw error;
+        await funcionarioService.update(parseInt(editingEmployee.id), {
+          idFuncionario: parseInt(editingEmployee.id),
+          nomeCompleto: employeeData.name,
+          cpf: employeeData.cpf,
+          email: employeeData.email,
+          cargo: employeeData.role,
+          status: employeeData.active ? 'ATIVO' : 'INATIVO',
+        });
 
         toast({
           title: 'Funcionário atualizado',
           description: 'Os dados foram atualizados com sucesso.',
         });
       } else {
-        const { error } = await supabase
-          .from('funcionario')
-          .insert({
-            cpf: employeeData.cpf,
-            nomecompleto: employeeData.name,
-            email: employeeData.email,
-            cargo: employeeData.role,
-            senha: 'senha123',
-            status: 'ATIVO',
-          });
-
-        if (error) throw error;
+        await funcionarioService.create({
+          nomeCompleto: employeeData.name,
+          cpf: employeeData.cpf,
+          email: employeeData.email,
+          senha: 'senha123',
+          cargo: employeeData.role,
+          status: 'ATIVO',
+        });
 
         toast({
           title: 'Funcionário cadastrado',
@@ -131,11 +119,11 @@ export const Funcionarios: React.FC = () => {
       setEditingEmployee(undefined);
       setShowForm(false);
       fetchEmployees();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao salvar funcionário:', error);
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível salvar o funcionário.',
+        description: 'Não foi possível salvar o funcionário.',
         variant: 'destructive',
       });
     }
@@ -149,24 +137,20 @@ export const Funcionarios: React.FC = () => {
   const handleDeleteEmployee = async (employee: User) => {
     if (confirm(`Tem certeza que deseja excluir o funcionário ${employee.name}?`)) {
       try {
-        const { error } = await supabase
-          .from('funcionario')
-          .delete()
-          .eq('idfuncionario', parseInt(employee.id));
-
-        if (error) throw error;
-
+        // Note: A API C# não tem endpoint de delete para funcionários ainda
+        // Você pode implementar ou usar update para INATIVO
         toast({
-          title: 'Funcionário excluído',
-          description: `${employee.name} foi removido do sistema.`,
+          title: 'Funcionalidade não disponível',
+          description: 'A exclusão de funcionários será implementada em breve.',
+          variant: 'destructive',
         });
 
-        fetchEmployees();
-      } catch (error: any) {
+        // fetchEmployees();
+      } catch (error) {
         console.error('Erro ao excluir funcionário:', error);
         toast({
           title: 'Erro',
-          description: error.message || 'Não foi possível excluir o funcionário.',
+          description: 'Não foi possível excluir o funcionário.',
           variant: 'destructive',
         });
       }

@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { ClientForm } from '@/components/forms/ClientForm';
 import { useToast } from '@/hooks/use-toast';
 import { displayCPF, displayTelefone } from '@/lib/validations';
-import { supabase } from '@/integrations/supabase/client';
+import { clienteService } from '@/lib/csharp-api';
 
 export const Clientes: React.FC = () => {
   const navigate = useNavigate();
@@ -35,23 +35,18 @@ export const Clientes: React.FC = () => {
 
   const fetchClients = async () => {
     try {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select('*')
-        .order('nomecompleto', { ascending: true });
-
-      if (error) throw error;
+      const data = await clienteService.getAll();
 
       const mappedClients: Client[] = (data || []).map(cliente => ({
         id: cliente.cpf,
-        name: cliente.nomecompleto,
+        name: cliente.nomeCompleto,
         cpf: cliente.cpf,
-        dateOfBirth: cliente.datanasc || '',
+        dateOfBirth: cliente.dataNasc || '',
         phone: cliente.telefone || '',
         email: cliente.email || '',
         address: '',
         allergies: cliente.alergias || '',
-        observations: cliente.observacoes || '',
+        observations: '',
         createdAt: new Date().toISOString(),
       }));
 
@@ -91,39 +86,30 @@ export const Clientes: React.FC = () => {
   const handleSaveClient = async (clientData: Omit<Client, 'id' | 'createdAt'>) => {
     try {
       if (editingClient) {
-        const { error } = await supabase
-          .from('cliente')
-          .update({
-            nomecompleto: clientData.name,
-            datanasc: clientData.dateOfBirth,
-            telefone: clientData.phone,
-            email: clientData.email,
-            alergias: clientData.allergies,
-            observacoes: clientData.observations,
-          })
-          .eq('cpf', editingClient.cpf);
-
-        if (error) throw error;
+        await clienteService.update(editingClient.cpf, {
+          cpf: editingClient.cpf,
+          nomeCompleto: clientData.name,
+          dataNasc: clientData.dateOfBirth,
+          telefone: clientData.phone,
+          email: clientData.email,
+          alergias: clientData.allergies,
+          status: 'ATIVO',
+        });
 
         toast({
           title: 'Cliente atualizado',
           description: 'Os dados foram atualizados com sucesso.',
         });
       } else {
-        const { error } = await supabase
-          .from('cliente')
-          .insert({
-            cpf: clientData.cpf,
-            nomecompleto: clientData.name,
-            datanasc: clientData.dateOfBirth,
-            telefone: clientData.phone,
-            email: clientData.email,
-            alergias: clientData.allergies,
-            observacoes: clientData.observations,
-            status: 'ATIVO',
-          });
-
-        if (error) throw error;
+        await clienteService.create({
+          cpf: clientData.cpf,
+          nomeCompleto: clientData.name,
+          dataNasc: clientData.dateOfBirth,
+          telefone: clientData.phone,
+          email: clientData.email,
+          alergias: clientData.allergies,
+          status: 'ATIVO',
+        });
 
         toast({
           title: 'Cliente cadastrado',
@@ -134,11 +120,11 @@ export const Clientes: React.FC = () => {
       setEditingClient(undefined);
       setShowForm(false);
       fetchClients();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao salvar cliente:', error);
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível salvar o cliente.',
+        description: 'Não foi possível salvar o cliente.',
         variant: 'destructive',
       });
     }
@@ -152,12 +138,7 @@ export const Clientes: React.FC = () => {
   const handleDeleteClient = async (client: Client) => {
     if (confirm(`Tem certeza que deseja excluir o cliente ${client.name}?`)) {
       try {
-        const { error } = await supabase
-          .from('cliente')
-          .delete()
-          .eq('cpf', client.cpf);
-
-        if (error) throw error;
+        await clienteService.delete(client.cpf);
 
         toast({
           title: 'Cliente excluído',
@@ -165,11 +146,11 @@ export const Clientes: React.FC = () => {
         });
 
         fetchClients();
-      } catch (error: any) {
+      } catch (error) {
         console.error('Erro ao excluir cliente:', error);
         toast({
           title: 'Erro',
-          description: error.message || 'Não foi possível excluir o cliente.',
+          description: 'Não foi possível excluir o cliente.',
           variant: 'destructive',
         });
       }

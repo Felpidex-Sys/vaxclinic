@@ -9,7 +9,6 @@ import { MaskedInput } from '@/components/ui/masked-input';
 import { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { funcionarioSchema, formatCPF, senhaSchema } from '@/lib/validations';
-import { hashPassword } from '@/lib/crypto';
 
 interface EmployeeFormProps {
   open: boolean;
@@ -74,24 +73,13 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       return;
     }
 
-    // Hash da senha antes de salvar (apenas para novos funcionários)
+    // A senha será hash-ada pelo backend C#
     if (!employee && senha) {
-      try {
-        const hashedPassword = await hashPassword(senha);
-        // Adiciona a senha hash aos dados
-        const dataWithPassword = {
-          ...cleanedData,
-          senha: hashedPassword,
-        };
-        onSave(dataWithPassword as any);
-      } catch (error) {
-        toast({
-          title: "Erro ao processar senha",
-          description: "Não foi possível criptografar a senha.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const dataWithPassword = {
+        ...cleanedData,
+        senha: senha, // Backend C# fará o hash
+      };
+      onSave(dataWithPassword);
     } else {
       onSave(cleanedData);
     }

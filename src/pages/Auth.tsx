@@ -1,171 +1,27 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { Activity } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
-export default function Auth() {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (isSignUp) {
-        // Signup
-        const { data, error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-          }
-        });
-
-        if (error) throw error;
-
-        // Criar registro na tabela funcionario
-        if (data.user) {
-          // Verificar se já existe algum funcionário (se não existir, criar como ADMIN)
-          const { count } = await supabase
-            .from('funcionario')
-            .select('*', { count: 'exact', head: true });
-
-          const isFirstUser = count === 0;
-
-          const { error: profileError } = await supabase
-            .from('funcionario')
-            .insert({
-              email: formData.email,
-              nomecompleto: isFirstUser ? 'Administrador' : 'Funcionário',
-              cpf: isFirstUser ? '00000000000' : '11111111111',
-              cargo: isFirstUser ? 'ADMIN' : 'FUNCIONARIO',
-              senha: formData.password,
-              status: 'ATIVO',
-            });
-
-          if (profileError) {
-            console.error('Erro ao criar perfil:', profileError);
-            throw profileError;
-          }
-        }
-
-        toast({
-          title: "Cadastro realizado com sucesso!",
-          description: "Você já pode fazer login.",
-        });
-        
-        setIsSignUp(false);
-      } else {
-        // Login
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao VixClinic",
-        });
-
-        navigate('/');
-      }
-    } catch (error: any) {
-      toast({
-        title: isSignUp ? "Erro ao cadastrar" : "Erro ao fazer login",
-        description: error.message || "Verifique suas credenciais e tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export const Auth: React.FC = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-primary/10">
-              <Activity className="w-8 h-8 text-primary" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">VixClinic</CardTitle>
+    <div className="container mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Página de Autenticação
+          </CardTitle>
           <CardDescription>
-            {isSignUp ? 'Criar nova conta' : 'Sistema de Gestão de Clínicas de Vacinação'}
+            Esta página foi migrada.  Use /auth/login para fazer login.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                disabled={loading}
-              />
-            </div>
-            <Button 
-              type="submit" 
-              className="w-full medical-gradient text-white" 
-              disabled={loading}
-            >
-              {loading ? (isSignUp ? "Cadastrando..." : "Entrando...") : (isSignUp ? "Cadastrar" : "Entrar")}
-            </Button>
-          </form>
-          
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-primary hover:underline"
-              disabled={loading}
-            >
-              {isSignUp ? 'Já tem uma conta? Entrar' : 'Criar nova conta'}
-            </button>
-          </div>
-          
-          {!isSignUp && (
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground text-center mb-2">
-                <strong>Primeira vez?</strong>
-              </p>
-              <p className="text-sm text-center">
-                Clique em "Criar nova conta" para cadastrar o administrador.
-              </p>
-            </div>
-          )}
+          <p className="text-sm text-muted-foreground">
+            O sistema de autenticação agora usa a API C# com JWT tokens.
+            Acesse a página de login através do menu lateral ou pela rota /auth.
+          </p>
         </CardContent>
       </Card>
     </div>
   );
-}
+};
