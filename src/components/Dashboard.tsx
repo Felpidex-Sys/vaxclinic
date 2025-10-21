@@ -15,7 +15,7 @@ import {
 import { DashboardStats, Client, User, Vaccine, VaccineBatch, VaccinationRecord, Agendamento } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { dashboardService, clienteService, funcionarioService, vacinaService, loteService, aplicacaoService } from '@/lib/csharp-api';
 import { useToast } from '@/hooks/use-toast';
 
 export const Dashboard: React.FC = () => {
@@ -43,102 +43,29 @@ export const Dashboard: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesData] = await Promise.all([
-        supabase.from('cliente').select('*'),
-        supabase.from('funcionario').select('*'),
-        supabase.from('vacina').select('*'),
-        supabase.from('lote').select('*'),
-        supabase.from('aplicacao').select('*').order('dataaplicacao', { ascending: false }).limit(5),
-      ]);
-
-      if (clientsData.error) throw clientsData.error;
-      if (employeesData.error) throw employeesData.error;
-      if (vaccinesData.error) throw vaccinesData.error;
-      if (batchesData.error) throw batchesData.error;
-
-      const mappedClients: Client[] = (clientsData.data || []).map(c => ({
-        id: c.cpf,
-        name: c.nomecompleto,
-        cpf: c.cpf,
-        dateOfBirth: c.datanasc || '',
-        phone: c.telefone || '',
-        email: c.email || '',
-        address: '',
-        allergies: c.alergias || '',
-        observations: c.observacoes || '',
-        createdAt: new Date().toISOString(),
-      }));
-
-      const mappedEmployees: User[] = (employeesData.data || []).map(e => ({
-        id: e.idfuncionario.toString(),
-        name: e.nomecompleto,
-        email: e.email,
-        cpf: e.cpf,
-        role: 'funcionario' as const,
-        permissions: ['all'],
-        active: e.status === 'ATIVO',
-        createdAt: e.dataadmissao || new Date().toISOString(),
-      }));
-
-      const mappedVaccines: Vaccine[] = (vaccinesData.data || []).map(v => ({
-        id: v.idvacina.toString(),
-        name: v.nome,
-        manufacturer: v.fabricante || '',
-        description: v.descricao || '',
-        targetDisease: v.categoria || '',
-        dosesRequired: v.quantidadedoses || 1,
-        createdAt: new Date().toISOString(),
-      }));
-
-      const mappedBatches: VaccineBatch[] = (batchesData.data || []).map(b => ({
-        id: b.numlote.toString(),
-        vaccineId: b.vacina_idvacina.toString(),
-        batchNumber: b.codigolote,
-        quantity: b.quantidadeinicial,
-        remainingQuantity: b.quantidadedisponivel,
-        manufacturingDate: new Date().toISOString(),
-        expirationDate: b.datavalidade,
-        createdAt: new Date().toISOString(),
-      }));
-
-      setClients(mappedClients);
-      setEmployees(mappedEmployees);
-      setVaccines(mappedVaccines);
-      setBatches(mappedBatches);
-
-      // Calcular estatísticas
-      const today = new Date().toISOString().split('T')[0];
-      const vacinacoesHoje = (aplicacoesData.data || []).filter(
-        a => a.dataaplicacao === today
-      ).length;
-
-      const lotesVencendo = mappedBatches.filter(batch => {
-        const daysUntilExpiration = Math.floor(
-          (new Date(batch.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-        );
-        return daysUntilExpiration > 0 && daysUntilExpiration <= 30;
-      });
-
-      const mappedRecentVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map(a => ({
-        id: a.idaplicacao.toString(),
-        clientId: a.cliente_cpf,
-        vaccineId: '', 
-        batchId: '', 
-        appliedBy: a.funcionario_idfuncionario.toString(),
-        applicationDate: a.dataaplicacao,
-        doseNumber: a.dose || 1,
-        observations: a.observacoes || '',
-        adverseReactions: a.reacoesadversas || '',
-        createdAt: a.dataaplicacao,
-      }));
+      // Usar API C# para buscar dados
+      const stats = await dashboardService.getStats();
 
       setStats({
-        totalClients: mappedClients.length,
-        totalEmployees: mappedEmployees.length,
-        totalVaccines: mappedVaccines.length,
-        vaccinationsToday: vacinacoesHoje,
-        expiringBatches: lotesVencendo,
-        recentVaccinations: mappedRecentVaccinations,
+        totalClients: stats.totalClientes,
+        totalEmployees: stats.totalFuncionarios,
+        totalVaccines: stats.totalVacinas,
+        vaccinationsToday: stats.aplicacoesHoje,
+        expiringBatches: stats.lotesVencendo.map((l: { codigoLote: string }) => l.codigoLote),
+        recentVaccinations: stats.aplicacoesRecentes.map((a: { idAplicacao: number; clienteCpf: string; vacina: string; lote: string; dataAplicacao: string; observacoes?: string; reacoesAdversas?: string }) => ({
+          id: a.idAplicacao.toString(),
+          clientId: a.clienteCpf,
+          vaccineId: a.vacina,
+          employeeId: a.idAplicacao.toString(),
+          batchId: a.lote,
+          date: a.dataAplicacao,
+          nextDoseDate: null,
+          observations: a.observacoes || '',
+          createdAt: a.dataAplicacao,
+          status: 'completed',
+          reactions: a.reacoesAdversas || '',
+          adverseReactions: a.reacoesAdversas || '',
+        })),
       });
     } catch (error) {
       console.error('Erro ao buscar dados:', error);

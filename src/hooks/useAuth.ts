@@ -1,7 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { authService } from '@/lib/csharp-api';
 
 interface AuthContextType {
   user: User | null;
@@ -22,80 +21,54 @@ export const useAuth = () => {
 
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        if (session?.user?.email) {
-          setTimeout(() => {
-            fetchUserProfile(session.user.email!);
-          }, 0);
-        } else {
-          setUser(null);
+    const checkAuth = () => {
+      if (authService.isAuthenticated()) {
+        const userData = authService.getUser();
+        if (userData) {
+          setUser({
+            id: userData.id.toString(),
+            name: userData.nome,
+            email: userData.email,
+            cpf: '',
+            role: userData.cargo === 'ADMIN' ? 'admin' : 'funcionario',
+            permissions: userData.cargo === 'ADMIN' ? ['all'] : ['read_clients', 'write_clients'],
+            active: true,
+            createdAt: new Date().toISOString(),
+          });
         }
       }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user?.email) {
-        fetchUserProfile(session.user.email);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchUserProfile = async (userEmail: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('funcionario')
-        .select('*')
-        .eq('email', userEmail)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        const userData: User = {
-          id: data.idfuncionario.toString(),
-          name: data.nomecompleto,
-          email: data.email,
-          cpf: data.cpf,
-          role: data.cargo === 'ADMIN' ? 'admin' : 'funcionario',
-          permissions: data.cargo === 'ADMIN' ? ['all'] : ['read_clients', 'write_clients'],
-          active: data.status === 'ATIVO',
-          createdAt: new Date().toISOString(),
-        };
-        setUser(userData);
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    } finally {
       setIsLoading(false);
-    }
-  };
+    };
+
+    checkAuth();
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
+      const response = await authService.login(email, password);
+      
+      if (response && response.token) {
+        setUser({
+          id: response.user.id.toString(),
+          name: response.user.nome,
+          email: response.user.email,
+          cpf: '',
+          role: response.user.cargo === 'ADMIN' ? 'admin' : 'funcionario',
+          permissions: response.user.cargo === 'ADMIN' ? ['all'] : ['read_clients', 'write_clients'],
+          active: true,
+          createdAt: new Date().toISOString(),
+        });
+        setIsLoading(false);
+        return true;
+      }
+      
       setIsLoading(false);
-      return true;
+      return false;
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
@@ -103,10 +76,9 @@ export const useAuthState = () => {
     }
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const logout = () => {
+    authService.logout();
     setUser(null);
-    setSession(null);
   };
 
   return { user, login, logout, isLoading };
