@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   UserCheck, 
   Plus, 
@@ -120,7 +121,12 @@ export const Funcionarios: React.FC = () => {
             status: 'ATIVO',
           });
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') {
+            throw new Error('Já existe um funcionário cadastrado com este CPF.');
+          }
+          throw error;
+        }
 
         toast({
           title: 'Funcionário cadastrado',
@@ -266,8 +272,18 @@ export const Funcionarios: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             {loading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Carregando funcionários...</p>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <Skeleton className="w-12 h-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-48" />
+                      <Skeleton className="h-4 w-64" />
+                      <Skeleton className="h-4 w-56" />
+                    </div>
+                    <Skeleton className="h-9 w-20" />
+                  </div>
+                ))}
               </div>
             ) : filteredEmployees.length === 0 ? (
               <div className="text-center py-8">

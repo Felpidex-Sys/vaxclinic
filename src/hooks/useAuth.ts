@@ -55,23 +55,42 @@ export const useAuthState = () => {
 
   const fetchUserProfile = async (userEmail: string) => {
     try {
-      const { data, error } = await supabase
+      // Busca dados do funcionário
+      const { data: funcData, error: funcError } = await supabase
         .from('funcionario')
-        .select('*')
+        .select('*, user_id')
         .eq('email', userEmail)
         .maybeSingle();
 
-      if (error) throw error;
+      if (funcError) throw funcError;
 
-      if (data) {
+      if (funcData) {
+        // Busca role da tabela user_roles se user_id existir
+        let userRole: 'admin' | 'funcionario' | 'vacinador' = 'funcionario';
+        
+        if (funcData.user_id) {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', funcData.user_id)
+            .maybeSingle();
+          
+          if (roleData?.role) {
+            userRole = roleData.role as 'admin' | 'funcionario' | 'vacinador';
+          }
+        } else {
+          // Fallback para cargo da tabela funcionario
+          userRole = (funcData.cargo === 'ADMIN' ? 'admin' : 'funcionario') as 'admin' | 'funcionario' | 'vacinador';
+        }
+
         const userData: User = {
-          id: data.idfuncionario.toString(),
-          name: data.nomecompleto,
-          email: data.email,
-          cpf: data.cpf,
-          role: data.cargo === 'ADMIN' ? 'admin' : 'funcionario',
-          permissions: data.cargo === 'ADMIN' ? ['all'] : ['read_clients', 'write_clients'],
-          active: data.status === 'ATIVO',
+          id: funcData.idfuncionario.toString(),
+          name: funcData.nomecompleto,
+          email: funcData.email,
+          cpf: funcData.cpf,
+          role: userRole,
+          permissions: userRole === 'admin' ? ['all'] : ['read_clients', 'write_clients'],
+          active: funcData.status === 'ATIVO',
           createdAt: new Date().toISOString(),
         };
         setUser(userData);
