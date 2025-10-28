@@ -203,19 +203,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               )}
             </div>
             
-            <div>
-              <Label htmlFor="role">Cargo *</Label>
-              <Select value={formData.role} onValueChange={(value: User['role']) => setFormData({ ...formData, role: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cargo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="geral">Geral</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
             {!employee && (
               <div>
                 <Label htmlFor="senha">Senha *</Label>

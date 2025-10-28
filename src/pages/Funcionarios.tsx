@@ -73,20 +73,13 @@ export const Funcionarios: React.FC = () => {
   );
 
   const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'geral': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    return 'bg-red-100 text-red-800';
   };
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin': return 'Administrador';
-      case 'geral': return 'Geral';
-      default: return role;
-    }
+    return 'Administrador';
   };
+
 
   const handleSaveEmployee = async (employeeData: Omit<User, 'id' | 'createdAt'>) => {
     try {

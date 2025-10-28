@@ -19,68 +19,52 @@ import {
   FileText,
   Shield,
   Calendar,
-  KeyRound,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 
 const navigationItems = [
   {
     title: 'Dashboard',
     url: '/',
     icon: LayoutDashboard,
-    permissions: ['all'],
   },
   {
     title: 'Funcionários',
     url: '/funcionarios',
     icon: UserCheck,
-    permissions: ['all'],
   },
   {
     title: 'Clientes',
     url: '/clientes',
     icon: Users,
-    permissions: ['all'],
   },
   {
     title: 'Vacinas',
     url: '/vacinas',
     icon: Syringe,
-    permissions: ['all'],
   },
   {
     title: 'Agendamentos',
     url: '/agendamentos',
     icon: Calendar,
-    permissions: ['all'],
   },
   {
     title: 'Relatórios',
     url: '/relatorios',
     icon: FileText,
-    permissions: ['all'],
   },
   {
     title: 'Permissões',
     url: '/permissoes',
     icon: Shield,
-    permissions: ['all'],
   },
 ];
 
 export const AppSidebar: React.FC = () => {
   const { state } = useSidebar();
   const location = useLocation();
-  const { user } = useAuth();
   
   const currentPath = location.pathname;
   const collapsed = state === 'collapsed';
-  
-  const hasPermission = (itemPermissions: string[]) => {
-    if (!user) return false;
-    if (user.permissions.includes('all')) return true;
-    return itemPermissions.some(permission => user.permissions.includes(permission));
-  };
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
@@ -93,8 +77,6 @@ export const AppSidebar: React.FC = () => {
       ? 'bg-medical-blue text-white font-medium hover:bg-medical-blue/90' 
       : 'hover:bg-medical-gray/20 text-sidebar-foreground/70 hover:text-sidebar-foreground';
   };
-
-  const visibleItems = navigationItems.filter(item => hasPermission(item.permissions));
 
   return (
     <Sidebar className={collapsed ? 'w-14' : 'w-64'}>
@@ -119,7 +101,7 @@ export const AppSidebar: React.FC = () => {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleItems.map((item) => (
+              {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 
