@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Plus, Trash2, ShieldCheck, UserCog } from 'lucide-react';
+import { Loader2, Plus, Trash2, ShieldCheck, UserCog, ArrowUp, ArrowDown } from 'lucide-react';
 import { hashPassword } from '@/lib/crypto';
 
 interface LoginUser {
@@ -135,31 +135,50 @@ export const GestaoLogin: React.FC = () => {
     }
   };
 
-  const handlePromote = async (userEmail: string, currentRole: string) => {
-    const newRole = currentRole === 'admin' ? 'funcionario' : 'admin';
-    const actionText = newRole === 'admin' ? 'promover a Administrador' : 'rebaixar a Funcionário';
-    
-    if (!confirm(`Tem certeza que deseja ${actionText} este usuário?`)) return;
+  const handlePromote = async (userEmail: string) => {
+    if (!confirm('Tem certeza que deseja promover este usuário a Administrador?')) return;
 
     try {
-      const functionName = newRole === 'admin' ? 'promote_user_to_admin' : 'demote_user_to_funcionario';
-      
-      const { error } = await supabase.rpc(functionName, {
-        user_email: userEmail
+      const { error } = await supabase.rpc('promote_user_to_admin', { 
+        user_email: userEmail 
       });
-
+      
       if (error) throw error;
 
       toast({
         title: 'Sucesso!',
-        description: `Usuário ${newRole === 'admin' ? 'promovido' : 'rebaixado'} com sucesso.`,
+        description: 'Usuário promovido a Administrador.',
       });
       loadUsers();
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: error.message || 'Não foi possível alterar o cargo do usuário.',
+        description: error.message || 'Não foi possível promover o usuário.',
+      });
+    }
+  };
+
+  const handleDemote = async (userEmail: string) => {
+    if (!confirm('Tem certeza que deseja rebaixar este usuário a Funcionário?')) return;
+
+    try {
+      const { error } = await supabase.rpc('demote_user_to_funcionario', { 
+        user_email: userEmail 
+      });
+      
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso!',
+        description: 'Usuário rebaixado a Funcionário.',
+      });
+      loadUsers();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: error.message || 'Não foi possível rebaixar o usuário.',
       });
     }
   };
@@ -308,18 +327,25 @@ export const GestaoLogin: React.FC = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handlePromote(user.email, user.role)}
-                        title={user.role === 'admin' ? 'Rebaixar a Funcionário' : 'Promover a Administrador'}
-                      >
-                        {user.role === 'admin' ? (
-                          <UserCog className="w-4 h-4 text-blue-600" />
-                        ) : (
-                          <ShieldCheck className="w-4 h-4 text-green-600" />
-                        )}
-                      </Button>
+                      {user.role === 'funcionario' ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePromote(user.email)}
+                          title="Promover a Administrador"
+                        >
+                          <ArrowUp className="w-4 h-4 text-green-600" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDemote(user.email)}
+                          title="Rebaixar a Funcionário"
+                        >
+                          <ArrowDown className="w-4 h-4 text-orange-600" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
