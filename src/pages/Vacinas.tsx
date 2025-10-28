@@ -126,7 +126,7 @@ export const Vacinas: React.FC = () => {
         name: func.nomecompleto,
         email: func.email,
         cpf: func.cpf,
-        role: (func.cargo || 'funcionario') as 'admin' | 'funcionario',
+        role: (func.cargo === 'ADMIN' ? 'admin' : 'geral') as 'admin' | 'geral',
         permissions: [],
         active: func.status === 'ATIVO',
         createdAt: new Date().toISOString(),

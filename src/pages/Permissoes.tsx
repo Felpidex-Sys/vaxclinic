@@ -31,7 +31,7 @@ const availablePermissions = [
 
 const roleTemplates = {
   admin: ['all'],
-  funcionario: ['read_clients', 'write_clients', 'read_vaccines', 'read_reports'],
+  geral: ['read_clients', 'write_clients', 'read_vaccines', 'read_reports'],
 };
 
 export const Permissoes: React.FC = () => {
@@ -59,7 +59,7 @@ export const Permissoes: React.FC = () => {
         name: e.nomecompleto,
         email: e.email,
         cpf: e.cpf,
-        role: e.cargo === 'Administrador' ? 'admin' : 'funcionario',
+        role: e.cargo === 'ADMIN' ? 'admin' : 'geral',
         permissions: ['all'], // Por enquanto todos têm todas as permissões
         active: e.status === 'ATIVO',
         createdAt: e.dataadmissao || new Date().toISOString(),
@@ -108,7 +108,7 @@ export const Permissoes: React.FC = () => {
       const { error } = await supabase
         .from('funcionario')
         .update({
-          cargo: selectedEmployee.role === 'admin' ? 'Administrador' : 'Funcionário',
+          cargo: selectedEmployee.role === 'admin' ? 'ADMIN' : 'GERAL',
         })
         .eq('idfuncionario', parseInt(selectedEmployee.id));
 
@@ -142,7 +142,7 @@ export const Permissoes: React.FC = () => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
-      case 'funcionario': return 'bg-blue-100 text-blue-800';
+      case 'geral': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -150,7 +150,7 @@ export const Permissoes: React.FC = () => {
   const getRoleLabel = (role: string) => {
     switch (role) {
       case 'admin': return 'Administrador';
-      case 'funcionario': return 'Funcionário';
+      case 'geral': return 'Geral';
       default: return role;
     }
   };
@@ -269,11 +269,11 @@ export const Permissoes: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => applyRoleTemplate('funcionario')}
+                      onClick={() => applyRoleTemplate('geral')}
                       disabled={!isEditing}
                       className="flex-shrink-0"
                     >
-                      Funcionário
+                      Geral
                     </Button>
                   </div>
                 </div>

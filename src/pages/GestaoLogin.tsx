@@ -27,7 +27,7 @@ export const GestaoLogin: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
     senha: '',
-    cargo: 'funcionario' as 'admin' | 'funcionario'
+    cargo: 'geral' as 'admin' | 'geral'
   });
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export const GestaoLogin: React.FC = () => {
       });
 
       // Resetar form e recarregar
-      setFormData({ email: '', senha: '', cargo: 'funcionario' });
+      setFormData({ email: '', senha: '', cargo: 'geral' });
       setShowForm(false);
       loadUsers();
     } catch (error: any) {
@@ -160,10 +160,10 @@ export const GestaoLogin: React.FC = () => {
   };
 
   const handleDemote = async (userEmail: string) => {
-    if (!confirm('Tem certeza que deseja rebaixar este usuário a Funcionário?')) return;
+    if (!confirm('Tem certeza que deseja rebaixar este usuário a Geral?')) return;
 
     try {
-      const { error } = await supabase.rpc('demote_user_to_funcionario', { 
+      const { error } = await supabase.rpc('demote_user_to_geral', { 
         user_email: userEmail 
       });
       
@@ -171,7 +171,7 @@ export const GestaoLogin: React.FC = () => {
 
       toast({
         title: 'Sucesso!',
-        description: 'Usuário rebaixado a Funcionário.',
+        description: 'Usuário rebaixado a Geral.',
       });
       loadUsers();
     } catch (error: any) {
@@ -225,7 +225,7 @@ export const GestaoLogin: React.FC = () => {
           <CardHeader>
             <CardTitle>Adicionar Usuário de Login</CardTitle>
             <CardDescription>
-              Crie um novo usuário Administrador ou Funcionário
+              Crie um novo usuário Administrador ou Geral
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -260,7 +260,7 @@ export const GestaoLogin: React.FC = () => {
                   <Label htmlFor="cargo">Cargo *</Label>
                   <Select
                     value={formData.cargo}
-                    onValueChange={(value: 'admin' | 'funcionario') =>
+                    onValueChange={(value: 'admin' | 'geral') =>
                       setFormData({ ...formData, cargo: value })
                     }
                   >
@@ -269,7 +269,7 @@ export const GestaoLogin: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="funcionario">Funcionário</SelectItem>
+                      <SelectItem value="geral">Geral</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -322,12 +322,12 @@ export const GestaoLogin: React.FC = () => {
                   <TableCell className="font-medium">{user.email}</TableCell>
                   <TableCell>
                     <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                      {user.role === 'admin' ? 'Administrador' : 'Funcionário'}
+                      {user.role === 'admin' ? 'Administrador' : 'Geral'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {user.role === 'funcionario' ? (
+                      {user.role === 'geral' ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -341,7 +341,7 @@ export const GestaoLogin: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDemote(user.email)}
-                          title="Rebaixar a Funcionário"
+                          title="Rebaixar a Geral"
                         >
                           <ArrowDown className="w-4 h-4 text-orange-600" />
                         </Button>

@@ -74,7 +74,7 @@ export const Dashboard: React.FC = () => {
         name: e.nomecompleto,
         email: e.email,
         cpf: e.cpf,
-        role: 'funcionario' as const,
+        role: 'geral' as const,
         permissions: ['all'],
         active: e.status === 'ATIVO',
         createdAt: e.dataadmissao || new Date().toISOString(),

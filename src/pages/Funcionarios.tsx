@@ -47,7 +47,7 @@ export const Funcionarios: React.FC = () => {
         name: func.nomecompleto,
         email: func.email,
         cpf: func.cpf,
-        role: (func.cargo || 'funcionario') as 'admin' | 'funcionario',
+        role: (func.cargo === 'ADMIN' ? 'admin' : 'geral') as 'admin' | 'geral',
         permissions: [],
         active: func.status === 'ATIVO',
         createdAt: new Date().toISOString(),
@@ -75,7 +75,7 @@ export const Funcionarios: React.FC = () => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
-      case 'funcionario': return 'bg-blue-100 text-blue-800';
+      case 'geral': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -83,7 +83,7 @@ export const Funcionarios: React.FC = () => {
   const getRoleLabel = (role: string) => {
     switch (role) {
       case 'admin': return 'Administrador';
-      case 'funcionario': return 'Funcionário';
+      case 'geral': return 'Geral';
       default: return role;
     }
   };

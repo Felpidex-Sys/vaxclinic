@@ -326,6 +326,7 @@ export type Database = {
         Args: { user_email: string }
         Returns: undefined
       }
+      demote_user_to_geral: { Args: { user_email: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -341,7 +342,7 @@ export type Database = {
     }
     Enums: {
       agendamento_status: "AGENDADO" | "REALIZADO"
-      app_role: "admin" | "funcionario"
+      app_role: "admin" | "geral"
       cliente_status: "ATIVO" | "INATIVO"
       funcionario_status: "ATIVO" | "INATIVO"
       vacina_categoria: "VIRAL" | "BACTERIANA" | "OUTRA"
@@ -474,7 +475,7 @@ export const Constants = {
   public: {
     Enums: {
       agendamento_status: ["AGENDADO", "REALIZADO"],
-      app_role: ["admin", "funcionario"],
+      app_role: ["admin", "geral"],
       cliente_status: ["ATIVO", "INATIVO"],
       funcionario_status: ["ATIVO", "INATIVO"],
       vacina_categoria: ["VIRAL", "BACTERIANA", "OUTRA"],

@@ -114,7 +114,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       name: '',
       email: '',
       cpf: '',
-      role: 'funcionario',
+      role: 'geral',
       permissions: [],
       active: true,
     });
@@ -211,7 +211,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="funcionario">Funcionário</SelectItem>
+                  <SelectItem value="geral">Geral</SelectItem>
                 </SelectContent>
               </Select>
             </div>
