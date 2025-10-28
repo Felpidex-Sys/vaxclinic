@@ -14,6 +14,7 @@ import { Vacinas } from "@/pages/Vacinas";
 import { Agendamentos } from "@/pages/Agendamentos";
 import { Relatorios } from "@/pages/Relatorios";
 import { Permissoes } from "@/pages/Permissoes";
+import { GestaoLogin } from "@/pages/GestaoLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const AppContent = () => {
         <Route path="/agendamentos" element={<Agendamentos />} />
         <Route path="/relatorios" element={<Relatorios />} />
         <Route path="/permissoes" element={<Permissoes />} />
+        <Route path="/gestao-login" element={<GestaoLogin />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

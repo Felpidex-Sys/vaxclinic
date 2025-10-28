@@ -19,6 +19,7 @@ import {
   FileText,
   Shield,
   Calendar,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -27,6 +28,12 @@ const navigationItems = [
     title: 'Dashboard',
     url: '/',
     icon: LayoutDashboard,
+    permissions: ['all'],
+  },
+  {
+    title: 'Gestão de Login',
+    url: '/gestao-login',
+    icon: KeyRound,
     permissions: ['all'],
   },
   {
