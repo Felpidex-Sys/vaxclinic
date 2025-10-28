@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, ShieldCheck, UserCog } from 'lucide-react';
 import { hashPassword } from '@/lib/crypto';
 
 interface LoginUser {
@@ -132,6 +132,35 @@ export const GestaoLogin: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePromote = async (userEmail: string, currentRole: string) => {
+    const newRole = currentRole === 'admin' ? 'funcionario' : 'admin';
+    const actionText = newRole === 'admin' ? 'promover a Administrador' : 'rebaixar a Funcionário';
+    
+    if (!confirm(`Tem certeza que deseja ${actionText} este usuário?`)) return;
+
+    try {
+      const functionName = newRole === 'admin' ? 'promote_user_to_admin' : 'demote_user_to_funcionario';
+      
+      const { error } = await supabase.rpc(functionName, {
+        user_email: userEmail
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso!',
+        description: `Usuário ${newRole === 'admin' ? 'promovido' : 'rebaixado'} com sucesso.`,
+      });
+      loadUsers();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: error.message || 'Não foi possível alterar o cargo do usuário.',
+      });
     }
   };
 
@@ -278,13 +307,28 @@ export const GestaoLogin: React.FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(user.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePromote(user.email, user.role)}
+                        title={user.role === 'admin' ? 'Rebaixar a Funcionário' : 'Promover a Administrador'}
+                      >
+                        {user.role === 'admin' ? (
+                          <UserCog className="w-4 h-4 text-blue-600" />
+                        ) : (
+                          <ShieldCheck className="w-4 h-4 text-green-600" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(user.id)}
+                        title="Excluir usuário"
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

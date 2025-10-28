@@ -322,6 +322,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      demote_user_to_funcionario: {
+        Args: { user_email: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -330,6 +334,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      promote_user_to_admin: {
+        Args: { user_email: string }
+        Returns: undefined
+      }
     }
     Enums: {
       agendamento_status: "AGENDADO" | "REALIZADO"
