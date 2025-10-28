@@ -58,43 +58,45 @@ export const useAuthState = () => {
       // Busca dados do funcionário
       const { data: funcData, error: funcError } = await supabase
         .from('funcionario')
-        .select('*, user_id')
+        .select('user_id, nomecompleto, email, cpf, status, idfuncionario')
         .eq('email', userEmail)
-        .maybeSingle();
+        .single();
 
       if (funcError) throw funcError;
 
-      if (funcData) {
-        // Busca role da tabela user_roles se user_id existir
-        let userRole: 'admin' | 'geral' = 'geral';
-        
-        if (funcData.user_id) {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', funcData.user_id)
-            .maybeSingle();
-          
-          if (roleData?.role) {
-            userRole = roleData.role as 'admin' | 'geral';
-          }
-        } else {
-          // Fallback para cargo da tabela funcionario
-          userRole = (funcData.cargo === 'ADMIN' ? 'admin' : 'geral') as 'admin' | 'geral';
-        }
-
-        const userData: User = {
-          id: funcData.idfuncionario.toString(),
-          name: funcData.nomecompleto,
-          email: funcData.email,
-          cpf: funcData.cpf,
-          role: userRole,
-          permissions: userRole === 'admin' ? ['all'] : ['read_clients', 'write_clients'],
-          active: funcData.status === 'ATIVO',
-          createdAt: new Date().toISOString(),
-        };
-        setUser(userData);
+      if (!funcData?.user_id) {
+        console.error('Funcionário sem user_id associado');
+        setIsLoading(false);
+        return;
       }
+
+      // SEMPRE busca role da tabela user_roles (fonte única da verdade)
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', funcData.user_id)
+        .single();
+
+      if (roleError) {
+        console.error('Erro ao buscar role:', roleError);
+        setIsLoading(false);
+        return;
+      }
+
+      const userRole = roleData.role as 'admin' | 'geral';
+
+      const userData: User = {
+        id: funcData.idfuncionario.toString(),
+        name: funcData.nomecompleto,
+        email: funcData.email,
+        cpf: funcData.cpf,
+        role: userRole,
+        permissions: userRole === 'admin' ? ['all'] : ['read_clients', 'write_clients'],
+        active: funcData.status === 'ATIVO',
+        createdAt: new Date().toISOString(),
+      };
+      
+      setUser(userData);
     } catch (error) {
       console.error('Error fetching user profile:', error);
     } finally {
