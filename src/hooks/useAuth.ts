@@ -70,28 +70,14 @@ export const useAuthState = () => {
         return;
       }
 
-      // SEMPRE busca role da tabela user_roles (fonte única da verdade)
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', funcData.user_id)
-        .single();
-
-      if (roleError) {
-        console.error('Erro ao buscar role:', roleError);
-        setIsLoading(false);
-        return;
-      }
-
-      const userRole = roleData.role as 'admin' | 'geral';
-
+      // Todos os usuários são admin agora
       const userData: User = {
         id: funcData.idfuncionario.toString(),
         name: funcData.nomecompleto,
         email: funcData.email,
         cpf: funcData.cpf,
-        role: userRole,
-        permissions: userRole === 'admin' ? ['all'] : ['read_clients', 'write_clients'],
+        role: 'admin',
+        permissions: ['all'],
         active: funcData.status === 'ATIVO',
         createdAt: new Date().toISOString(),
       };

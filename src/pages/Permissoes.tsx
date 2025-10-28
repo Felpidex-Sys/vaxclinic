@@ -31,7 +31,6 @@ const availablePermissions = [
 
 const roleTemplates = {
   admin: ['all'],
-  geral: ['read_clients', 'write_clients', 'read_vaccines', 'read_reports'],
 };
 
 export const Permissoes: React.FC = () => {
@@ -59,8 +58,8 @@ export const Permissoes: React.FC = () => {
         name: e.nomecompleto,
         email: e.email,
         cpf: e.cpf,
-        role: e.cargo === 'ADMIN' ? 'admin' : 'geral',
-        permissions: ['all'], // Por enquanto todos têm todas as permissões
+        role: 'admin' as const,
+        permissions: ['all'],
         active: e.status === 'ATIVO',
         createdAt: e.dataadmissao || new Date().toISOString(),
       }));
@@ -108,7 +107,7 @@ export const Permissoes: React.FC = () => {
       const { error } = await supabase
         .from('funcionario')
         .update({
-          cargo: selectedEmployee.role === 'admin' ? 'ADMIN' : 'GERAL',
+          cargo: 'ADMIN',
         })
         .eq('idfuncionario', parseInt(selectedEmployee.id));
 
@@ -135,24 +134,16 @@ export const Permissoes: React.FC = () => {
     if (!selectedEmployee) return;
 
     const permissions = roleTemplates[role];
-    const updatedEmployee = { ...selectedEmployee, permissions, role };
+    const updatedEmployee = { ...selectedEmployee, permissions, role: 'admin' as const };
     setSelectedEmployee(updatedEmployee);
   };
 
   const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'geral': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    return 'bg-red-100 text-red-800';
   };
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin': return 'Administrador';
-      case 'geral': return 'Geral';
-      default: return role;
-    }
+    return 'Administrador';
   };
 
   return (
@@ -258,22 +249,13 @@ export const Permissoes: React.FC = () => {
                   <h4 className="font-medium mb-3">Modelos de Permissão</h4>
                   <div className="flex flex-wrap gap-2">
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       onClick={() => applyRoleTemplate('admin')}
                       disabled={!isEditing}
                       className="flex-shrink-0"
                     >
-                      Administrador
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyRoleTemplate('geral')}
-                      disabled={!isEditing}
-                      className="flex-shrink-0"
-                    >
-                      Geral
+                      Administrador (Padrão)
                     </Button>
                   </div>
                 </div>

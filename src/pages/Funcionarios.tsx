@@ -47,7 +47,7 @@ export const Funcionarios: React.FC = () => {
         name: func.nomecompleto,
         email: func.email,
         cpf: func.cpf,
-        role: (func.cargo === 'ADMIN' ? 'admin' : 'geral') as 'admin' | 'geral',
+        role: 'admin' as const,
         permissions: [],
         active: func.status === 'ATIVO',
         createdAt: new Date().toISOString(),

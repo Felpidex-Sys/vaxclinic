@@ -31,40 +31,34 @@ const navigationItems = [
     permissions: ['all'],
   },
   {
-    title: 'Gestão de Login',
-    url: '/gestao-login',
-    icon: KeyRound,
-    permissions: ['all'], // Só admin
-  },
-  {
     title: 'Funcionários',
     url: '/funcionarios',
     icon: UserCheck,
-    permissions: ['all'], // Só admin
+    permissions: ['all'],
   },
   {
     title: 'Clientes',
     url: '/clientes',
     icon: Users,
-    permissions: ['all', 'read_clients', 'write_clients'],
+    permissions: ['all'],
   },
   {
     title: 'Vacinas',
     url: '/vacinas',
     icon: Syringe,
-    permissions: ['all', 'read_vaccines', 'write_vaccines', 'apply_vaccines'],
+    permissions: ['all'],
   },
   {
     title: 'Agendamentos',
     url: '/agendamentos',
     icon: Calendar,
-    permissions: ['all', 'read_appointments', 'write_appointments'],
+    permissions: ['all'],
   },
   {
     title: 'Relatórios',
     url: '/relatorios',
     icon: FileText,
-    permissions: ['all', 'read_reports'],
+    permissions: ['all'],
   },
   {
     title: 'Permissões',

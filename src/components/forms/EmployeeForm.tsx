@@ -114,7 +114,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       name: '',
       email: '',
       cpf: '',
-      role: 'geral',
+      role: 'admin',
       permissions: [],
       active: true,
     });
