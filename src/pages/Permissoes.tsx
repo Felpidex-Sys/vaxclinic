@@ -32,7 +32,6 @@ const availablePermissions = [
 const roleTemplates = {
   admin: ['all'],
   funcionario: ['read_clients', 'write_clients', 'read_vaccines', 'read_reports'],
-  vacinador: ['read_clients', 'apply_vaccines', 'read_vaccines'],
 };
 
 export const Permissoes: React.FC = () => {
@@ -60,7 +59,7 @@ export const Permissoes: React.FC = () => {
         name: e.nomecompleto,
         email: e.email,
         cpf: e.cpf,
-        role: e.cargo === 'Administrador' ? 'admin' : e.cargo === 'Vacinador' ? 'vacinador' : 'funcionario',
+        role: e.cargo === 'Administrador' ? 'admin' : 'funcionario',
         permissions: ['all'], // Por enquanto todos têm todas as permissões
         active: e.status === 'ATIVO',
         createdAt: e.dataadmissao || new Date().toISOString(),
@@ -109,8 +108,7 @@ export const Permissoes: React.FC = () => {
       const { error } = await supabase
         .from('funcionario')
         .update({
-          cargo: selectedEmployee.role === 'admin' ? 'Administrador' : 
-                 selectedEmployee.role === 'vacinador' ? 'Vacinador' : 'Funcionário',
+          cargo: selectedEmployee.role === 'admin' ? 'Administrador' : 'Funcionário',
         })
         .eq('idfuncionario', parseInt(selectedEmployee.id));
 
@@ -145,7 +143,6 @@ export const Permissoes: React.FC = () => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
       case 'funcionario': return 'bg-blue-100 text-blue-800';
-      case 'vacinador': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -154,7 +151,6 @@ export const Permissoes: React.FC = () => {
     switch (role) {
       case 'admin': return 'Administrador';
       case 'funcionario': return 'Funcionário';
-      case 'vacinador': return 'Vacinador';
       default: return role;
     }
   };
@@ -278,15 +274,6 @@ export const Permissoes: React.FC = () => {
                       className="flex-shrink-0"
                     >
                       Funcionário
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyRoleTemplate('vacinador')}
-                      disabled={!isEditing}
-                      className="flex-shrink-0"
-                    >
-                      Vacinador
                     </Button>
                   </div>
                 </div>

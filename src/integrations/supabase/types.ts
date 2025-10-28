@@ -333,7 +333,7 @@ export type Database = {
     }
     Enums: {
       agendamento_status: "AGENDADO" | "REALIZADO"
-      app_role: "admin" | "funcionario" | "vacinador"
+      app_role: "admin" | "funcionario"
       cliente_status: "ATIVO" | "INATIVO"
       funcionario_status: "ATIVO" | "INATIVO"
       vacina_categoria: "VIRAL" | "BACTERIANA" | "OUTRA"
@@ -466,7 +466,7 @@ export const Constants = {
   public: {
     Enums: {
       agendamento_status: ["AGENDADO", "REALIZADO"],
-      app_role: ["admin", "funcionario", "vacinador"],
+      app_role: ["admin", "funcionario"],
       cliente_status: ["ATIVO", "INATIVO"],
       funcionario_status: ["ATIVO", "INATIVO"],
       vacina_categoria: ["VIRAL", "BACTERIANA", "OUTRA"],

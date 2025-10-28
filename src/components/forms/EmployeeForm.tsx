@@ -212,7 +212,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 <SelectContent>
                   <SelectItem value="admin">Administrador</SelectItem>
                   <SelectItem value="funcionario">Funcionário</SelectItem>
-                  <SelectItem value="vacinador">Vacinador</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -137,7 +137,6 @@ export const Login: React.FC = () => {
               <div className="text-xs space-y-1 text-muted-foreground">
                 <p><strong>Admin:</strong> admin@vixclinic.com</p>
                 <p><strong>Funcionário:</strong> funcionario@vixclinic.com</p>
-                <p><strong>Vacinador:</strong> vacinador@vixclinic.com</p>
                 <p><strong>Senha:</strong> 123456</p>
               </div>
             </div>

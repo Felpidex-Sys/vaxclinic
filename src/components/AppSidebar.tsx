@@ -34,13 +34,13 @@ const navigationItems = [
     title: 'Gestão de Login',
     url: '/gestao-login',
     icon: KeyRound,
-    permissions: ['all'],
+    permissions: ['all'], // Só admin
   },
   {
     title: 'Funcionários',
     url: '/funcionarios',
     icon: UserCheck,
-    permissions: ['all', 'manage_employees'],
+    permissions: ['all'], // Só admin
   },
   {
     title: 'Clientes',

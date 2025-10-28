@@ -66,7 +66,7 @@ export const useAuthState = () => {
 
       if (funcData) {
         // Busca role da tabela user_roles se user_id existir
-        let userRole: 'admin' | 'funcionario' | 'vacinador' = 'funcionario';
+        let userRole: 'admin' | 'funcionario' = 'funcionario';
         
         if (funcData.user_id) {
           const { data: roleData } = await supabase
@@ -76,11 +76,11 @@ export const useAuthState = () => {
             .maybeSingle();
           
           if (roleData?.role) {
-            userRole = roleData.role as 'admin' | 'funcionario' | 'vacinador';
+            userRole = roleData.role as 'admin' | 'funcionario';
           }
         } else {
           // Fallback para cargo da tabela funcionario
-          userRole = (funcData.cargo === 'ADMIN' ? 'admin' : 'funcionario') as 'admin' | 'funcionario' | 'vacinador';
+          userRole = (funcData.cargo === 'ADMIN' ? 'admin' : 'funcionario') as 'admin' | 'funcionario';
         }
 
         const userData: User = {

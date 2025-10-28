@@ -76,7 +76,7 @@ export interface User {
   name: string;
   email: string;
   cpf: string; // VARCHAR(11) - apenas números, sem formatação
-  role: 'admin' | 'funcionario' | 'vacinador';
+  role: 'admin' | 'funcionario';
   permissions: string[];
   active: boolean;
   createdAt: string;
