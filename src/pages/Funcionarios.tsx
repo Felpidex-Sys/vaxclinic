@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { 
   UserCheck, 
   Plus, 
@@ -47,7 +46,7 @@ export const Funcionarios: React.FC = () => {
         name: func.nomecompleto,
         email: func.email,
         cpf: func.cpf,
-        role: 'admin' as const,
+        role: (func.cargo || 'funcionario') as 'admin' | 'funcionario' | 'vacinador',
         permissions: [],
         active: func.status === 'ATIVO',
         createdAt: new Date().toISOString(),
@@ -73,13 +72,22 @@ export const Funcionarios: React.FC = () => {
   );
 
   const getRoleBadgeColor = (role: string) => {
-    return 'bg-red-100 text-red-800';
+    switch (role) {
+      case 'admin': return 'bg-red-100 text-red-800';
+      case 'funcionario': return 'bg-blue-100 text-blue-800';
+      case 'vacinador': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const getRoleLabel = (role: string) => {
-    return 'Administrador';
+    switch (role) {
+      case 'admin': return 'Administrador';
+      case 'funcionario': return 'Funcionário';
+      case 'vacinador': return 'Vacinador';
+      default: return role;
+    }
   };
-
 
   const handleSaveEmployee = async (employeeData: Omit<User, 'id' | 'createdAt'>) => {
     try {
@@ -112,12 +120,7 @@ export const Funcionarios: React.FC = () => {
             status: 'ATIVO',
           });
 
-        if (error) {
-          if (error.code === '23505') {
-            throw new Error('Já existe um funcionário cadastrado com este CPF.');
-          }
-          throw error;
-        }
+        if (error) throw error;
 
         toast({
           title: 'Funcionário cadastrado',
@@ -263,18 +266,8 @@ export const Funcionarios: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             {loading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
-                    <Skeleton className="w-12 h-12 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-5 w-48" />
-                      <Skeleton className="h-4 w-64" />
-                      <Skeleton className="h-4 w-56" />
-                    </div>
-                    <Skeleton className="h-9 w-20" />
-                  </div>
-                ))}
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Carregando funcionários...</p>
               </div>
             ) : filteredEmployees.length === 0 ? (
               <div className="text-center py-8">

@@ -36,23 +36,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     status: 'ATIVO' as 'ATIVO' | 'INATIVO',
   });
 
-  // Atualiza o formulário quando o cliente mudar (autopreenchimento em edição)
-  React.useEffect(() => {
-    if (client) {
-      setFormData({
-        name: client.name,
-        cpf: client.cpf,
-        dateOfBirth: client.dateOfBirth,
-        phone: client.phone,
-        email: client.email || '',
-        address: client.address || '',
-        allergies: client.allergies || '',
-        observations: client.observations || '',
-        status: 'ATIVO',
-      });
-    }
-  }, [client]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -128,14 +111,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                 placeholder="000.000.000-00"
                 required
-                disabled={!!client}
-                className={client ? 'bg-muted cursor-not-allowed' : ''}
               />
-              {client && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  O CPF não pode ser alterado após o cadastro
-                </p>
-              )}
             </div>
             
             <div>

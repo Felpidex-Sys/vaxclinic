@@ -96,7 +96,7 @@ export const Agendamentos: React.FC = () => {
         name: e.nomecompleto,
         email: e.email,
         cpf: e.cpf,
-        role: 'admin' as const,
+        role: 'funcionario' as const,
         permissions: ['all'],
         active: e.status === 'ATIVO',
         createdAt: e.dataadmissao || new Date().toISOString(),

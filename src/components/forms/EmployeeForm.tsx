@@ -35,20 +35,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
   });
   const [senha, setSenha] = useState('');
 
-  // Atualiza o formulário quando o funcionário mudar (autopreenchimento em edição)
-  React.useEffect(() => {
-    if (employee) {
-      setFormData({
-        name: employee.name,
-        email: employee.email,
-        cpf: employee.cpf,
-        role: employee.role,
-        permissions: employee.permissions || [],
-        active: employee.active ?? true,
-      });
-    }
-  }, [employee]);
-
   const availablePermissions = [
     { id: 'all', label: 'Todas as permissões (Admin)' },
     { id: 'read_clients', label: 'Visualizar clientes' },
@@ -114,7 +100,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       name: '',
       email: '',
       cpf: '',
-      role: 'admin',
+      role: 'funcionario',
       permissions: [],
       active: true,
     });
@@ -193,14 +179,21 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                 placeholder="000.000.000-00"
                 required
-                disabled={!!employee}
-                className={employee ? 'bg-muted cursor-not-allowed' : ''}
               />
-              {employee && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  O CPF não pode ser alterado após o cadastro
-                </p>
-              )}
+            </div>
+            
+            <div>
+              <Label htmlFor="role">Cargo *</Label>
+              <Select value={formData.role} onValueChange={(value: User['role']) => setFormData({ ...formData, role: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="funcionario">Funcionário</SelectItem>
+                  <SelectItem value="vacinador">Vacinador</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             {!employee && (

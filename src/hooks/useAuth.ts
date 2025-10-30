@@ -55,34 +55,27 @@ export const useAuthState = () => {
 
   const fetchUserProfile = async (userEmail: string) => {
     try {
-      // Busca dados do funcionário
-      const { data: funcData, error: funcError } = await supabase
+      const { data, error } = await supabase
         .from('funcionario')
-        .select('user_id, nomecompleto, email, cpf, status, idfuncionario')
+        .select('*')
         .eq('email', userEmail)
-        .single();
+        .maybeSingle();
 
-      if (funcError) throw funcError;
+      if (error) throw error;
 
-      if (!funcData?.user_id) {
-        console.error('Funcionário sem user_id associado');
-        setIsLoading(false);
-        return;
+      if (data) {
+        const userData: User = {
+          id: data.idfuncionario.toString(),
+          name: data.nomecompleto,
+          email: data.email,
+          cpf: data.cpf,
+          role: data.cargo === 'ADMIN' ? 'admin' : 'funcionario',
+          permissions: data.cargo === 'ADMIN' ? ['all'] : ['read_clients', 'write_clients'],
+          active: data.status === 'ATIVO',
+          createdAt: new Date().toISOString(),
+        };
+        setUser(userData);
       }
-
-      // Todos os usuários são admin agora
-      const userData: User = {
-        id: funcData.idfuncionario.toString(),
-        name: funcData.nomecompleto,
-        email: funcData.email,
-        cpf: funcData.cpf,
-        role: 'admin',
-        permissions: ['all'],
-        active: funcData.status === 'ATIVO',
-        createdAt: new Date().toISOString(),
-      };
-      
-      setUser(userData);
     } catch (error) {
       console.error('Error fetching user profile:', error);
     } finally {

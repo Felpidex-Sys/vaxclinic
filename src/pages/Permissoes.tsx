@@ -31,6 +31,8 @@ const availablePermissions = [
 
 const roleTemplates = {
   admin: ['all'],
+  funcionario: ['read_clients', 'write_clients', 'read_vaccines', 'read_reports'],
+  vacinador: ['read_clients', 'apply_vaccines', 'read_vaccines'],
 };
 
 export const Permissoes: React.FC = () => {
@@ -58,8 +60,8 @@ export const Permissoes: React.FC = () => {
         name: e.nomecompleto,
         email: e.email,
         cpf: e.cpf,
-        role: 'admin' as const,
-        permissions: ['all'],
+        role: e.cargo === 'Administrador' ? 'admin' : e.cargo === 'Vacinador' ? 'vacinador' : 'funcionario',
+        permissions: ['all'], // Por enquanto todos têm todas as permissões
         active: e.status === 'ATIVO',
         createdAt: e.dataadmissao || new Date().toISOString(),
       }));
@@ -107,7 +109,8 @@ export const Permissoes: React.FC = () => {
       const { error } = await supabase
         .from('funcionario')
         .update({
-          cargo: 'ADMIN',
+          cargo: selectedEmployee.role === 'admin' ? 'Administrador' : 
+                 selectedEmployee.role === 'vacinador' ? 'Vacinador' : 'Funcionário',
         })
         .eq('idfuncionario', parseInt(selectedEmployee.id));
 
@@ -134,16 +137,26 @@ export const Permissoes: React.FC = () => {
     if (!selectedEmployee) return;
 
     const permissions = roleTemplates[role];
-    const updatedEmployee = { ...selectedEmployee, permissions, role: 'admin' as const };
+    const updatedEmployee = { ...selectedEmployee, permissions, role };
     setSelectedEmployee(updatedEmployee);
   };
 
   const getRoleBadgeColor = (role: string) => {
-    return 'bg-red-100 text-red-800';
+    switch (role) {
+      case 'admin': return 'bg-red-100 text-red-800';
+      case 'funcionario': return 'bg-blue-100 text-blue-800';
+      case 'vacinador': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const getRoleLabel = (role: string) => {
-    return 'Administrador';
+    switch (role) {
+      case 'admin': return 'Administrador';
+      case 'funcionario': return 'Funcionário';
+      case 'vacinador': return 'Vacinador';
+      default: return role;
+    }
   };
 
   return (
@@ -249,13 +262,31 @@ export const Permissoes: React.FC = () => {
                   <h4 className="font-medium mb-3">Modelos de Permissão</h4>
                   <div className="flex flex-wrap gap-2">
                     <Button
-                      variant="default"
+                      variant="outline"
                       size="sm"
                       onClick={() => applyRoleTemplate('admin')}
                       disabled={!isEditing}
                       className="flex-shrink-0"
                     >
-                      Administrador (Padrão)
+                      Administrador
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyRoleTemplate('funcionario')}
+                      disabled={!isEditing}
+                      className="flex-shrink-0"
+                    >
+                      Funcionário
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyRoleTemplate('vacinador')}
+                      disabled={!isEditing}
+                      className="flex-shrink-0"
+                    >
+                      Vacinador
                     </Button>
                   </div>
                 </div>
