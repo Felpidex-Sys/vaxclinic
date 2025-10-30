@@ -175,6 +175,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                 placeholder="000.000.000-00"
                 required
+                disabled={!!employee}
               />
             </div>
             

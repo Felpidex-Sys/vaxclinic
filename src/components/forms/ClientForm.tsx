@@ -25,16 +25,45 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    name: client?.name || '',
-    cpf: client?.cpf || '',
-    dateOfBirth: client?.dateOfBirth || '',
-    phone: client?.phone || '',
-    email: client?.email || '',
-    address: client?.address || '',
-    allergies: client?.allergies || '',
-    observations: client?.observations || '',
+    name: '',
+    cpf: '',
+    dateOfBirth: '',
+    phone: '',
+    email: '',
+    address: '',
+    allergies: '',
+    observations: '',
     status: 'ATIVO' as 'ATIVO' | 'INATIVO',
   });
+
+  // Update form data when client prop changes
+  React.useEffect(() => {
+    if (client) {
+      setFormData({
+        name: client.name,
+        cpf: client.cpf,
+        dateOfBirth: client.dateOfBirth,
+        phone: client.phone,
+        email: client.email,
+        address: client.address || '',
+        allergies: client.allergies || '',
+        observations: client.observations || '',
+        status: 'ATIVO',
+      });
+    } else {
+      setFormData({
+        name: '',
+        cpf: '',
+        dateOfBirth: '',
+        phone: '',
+        email: '',
+        address: '',
+        allergies: '',
+        observations: '',
+        status: 'ATIVO',
+      });
+    }
+  }, [client, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +140,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                 onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                 placeholder="000.000.000-00"
                 required
+                disabled={!!client}
               />
             </div>
             

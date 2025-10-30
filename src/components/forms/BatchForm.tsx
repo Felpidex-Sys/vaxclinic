@@ -89,7 +89,7 @@ export const BatchForm: React.FC<BatchFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {batch ? 'Editar Lote' : 'Novo Lote'}

@@ -41,12 +41,13 @@ export const Dashboard: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesData] = await Promise.all([
+      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesData, agendamentosData] = await Promise.all([
         supabase.from('cliente').select('*'),
         supabase.from('funcionario').select('*'),
         supabase.from('vacina').select('*'),
         supabase.from('lote').select('*'),
         supabase.from('aplicacao').select('*').order('dataaplicacao', { ascending: false }).limit(5),
+        supabase.from('agendamento').select('*').eq('status', 'REALIZADO').order('dataagendada', { ascending: false }).limit(5),
       ]);
 
       if (clientsData.error) throw clientsData.error;
@@ -130,13 +131,32 @@ export const Dashboard: React.FC = () => {
         createdAt: a.dataaplicacao,
       }));
 
+      // Adicionar agendamentos finalizados como vacinações recentes
+      const agendamentosFinalizados: VaccinationRecord[] = (agendamentosData.data || []).map(ag => ({
+        id: `ag-${ag.idagendamento}`,
+        clientId: ag.cliente_cpf,
+        vaccineId: '',
+        batchId: ag.lote_numlote?.toString() || '',
+        appliedBy: ag.funcionario_idfuncionario?.toString() || '',
+        applicationDate: ag.dataagendada.split('T')[0],
+        doseNumber: 1,
+        observations: ag.observacoes || '',
+        adverseReactions: '',
+        createdAt: ag.dataagendada,
+      }));
+
+      // Combinar e ordenar por data
+      const todasVacinacoes = [...mappedRecentVaccinations, ...agendamentosFinalizados]
+        .sort((a, b) => new Date(b.applicationDate).getTime() - new Date(a.applicationDate).getTime())
+        .slice(0, 5);
+
       setStats({
         totalClients: mappedClients.length,
         totalEmployees: mappedEmployees.length,
         totalVaccines: mappedVaccines.length,
         vaccinationsToday: vacinacoesHoje,
         expiringBatches: lotesVencendo,
-        recentVaccinations: mappedRecentVaccinations,
+        recentVaccinations: todasVacinacoes,
       });
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
