@@ -39,9 +39,17 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
     notes: '',
   });
 
-  const availableBatches = batches.filter(
-    batch => batch.vaccineId === formData.vaccineId && batch.remainingQuantity > 0
-  );
+  const availableBatches = batches.filter(batch => {
+    if (batch.vaccineId !== formData.vaccineId) return false;
+    if (batch.remainingQuantity <= 0) return false;
+    
+    // Verificar se o lote está vencido
+    const expirationDate = new Date(batch.expirationDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return expirationDate >= today;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

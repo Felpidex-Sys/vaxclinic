@@ -19,6 +19,7 @@ import { ClientForm } from '@/components/forms/ClientForm';
 import { useToast } from '@/hooks/use-toast';
 import { displayCPF, displayTelefone } from '@/lib/validations';
 import { supabase } from '@/integrations/supabase/client';
+import { InfoDialog } from '@/components/ui/info-dialog';
 
 export const Clientes: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +29,11 @@ export const Clientes: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
+  const [infoDialog, setInfoDialog] = useState<{ open: boolean; title: string; content: string }>({
+    open: false,
+    title: '',
+    content: '',
+  });
 
   useEffect(() => {
     fetchClients();
@@ -328,14 +334,23 @@ export const Clientes: React.FC = () => {
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       {client.allergies && (
-                        <Badge variant="secondary" className="mb-1">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="mb-1"
+                          onClick={() => setInfoDialog({ open: true, title: 'Alergias', content: client.allergies || '' })}
+                        >
                           Alergias
-                        </Badge>
+                        </Button>
                       )}
                       {client.observations && (
-                        <Badge variant="outline">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setInfoDialog({ open: true, title: 'Observações', content: client.observations || '' })}
+                        >
                           Observações
-                        </Badge>
+                        </Button>
                       )}
                     </div>
 
@@ -381,6 +396,14 @@ export const Clientes: React.FC = () => {
         onOpenChange={setShowForm}
         client={editingClient}
         onSave={handleSaveClient}
+      />
+
+      {/* Info Dialog */}
+      <InfoDialog
+        open={infoDialog.open}
+        onOpenChange={(open) => setInfoDialog({ ...infoDialog, open })}
+        title={infoDialog.title}
+        content={infoDialog.content}
       />
     </div>
   );

@@ -309,6 +309,8 @@ export const Funcionarios: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditEmployee(employee)}
+                        disabled={employee.role === 'admin'}
+                        title={employee.role === 'admin' ? 'Admin não pode ser editado' : 'Editar funcionário'}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -317,6 +319,8 @@ export const Funcionarios: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDeleteEmployee(employee)}
+                        disabled={employee.role === 'admin'}
+                        title={employee.role === 'admin' ? 'Admin não pode ser excluído' : 'Excluir funcionário'}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

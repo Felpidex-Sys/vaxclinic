@@ -33,7 +33,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     permissions: employee?.permissions || [],
     active: employee?.active ?? true,
   });
-  const [senha, setSenha] = useState('');
 
   const availablePermissions = [
     { id: 'all', label: 'Todas as permissões (Admin)' },
@@ -59,11 +58,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     // Validação com Zod
     try {
       funcionarioSchema.parse(cleanedData);
-      
-      // Validação de senha apenas para novos funcionários
-      if (!employee && senha) {
-        senhaSchema.parse(senha);
-      }
     } catch (error: any) {
       const errorMessage = error.errors?.[0]?.message || "Dados inválidos";
       toast({
@@ -74,27 +68,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       return;
     }
 
-    // Hash da senha antes de salvar (apenas para novos funcionários)
-    if (!employee && senha) {
-      try {
-        const hashedPassword = await hashPassword(senha);
-        // Adiciona a senha hash aos dados
-        const dataWithPassword = {
-          ...cleanedData,
-          senha: hashedPassword,
-        };
-        onSave(dataWithPassword as any);
-      } catch (error) {
-        toast({
-          title: "Erro ao processar senha",
-          description: "Não foi possível criptografar a senha.",
-          variant: "destructive",
-        });
-        return;
-      }
-    } else {
-      onSave(cleanedData);
-    }
+    onSave(cleanedData);
     onOpenChange(false);
     setFormData({
       name: '',
@@ -104,7 +78,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       permissions: [],
       active: true,
     });
-    setSenha('');
     
     toast({
       title: employee ? "Funcionário atualizado" : "Funcionário cadastrado",
@@ -195,24 +168,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            
-            {!employee && (
-              <div>
-                <Label htmlFor="senha">Senha *</Label>
-                <Input
-                  id="senha"
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
-                  required={!employee}
-                  minLength={8}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Mínimo de 8 caracteres
-                </p>
-              </div>
-            )}
           </div>
           
           <div className="flex items-center gap-4">

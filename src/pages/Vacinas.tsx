@@ -642,6 +642,12 @@ export const Vacinas: React.FC = () => {
                   const vaccine = vaccines.find(v => v.id === batch.vaccineId);
                   const usagePercentage = ((batch.quantity - batch.remainingQuantity) / batch.quantity) * 100;
                   
+                  // Verificar se o lote está vencido
+                  const expirationDate = new Date(batch.expirationDate);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const isExpired = expirationDate < today;
+                  
                   return (
                     <div
                       key={batch.id}
@@ -650,18 +656,23 @@ export const Vacinas: React.FC = () => {
                       <div>
                         <h3 className="font-semibold">{vaccine?.name}</h3>
                         <p className="text-sm text-muted-foreground">Lote: {batch.batchNumber}</p>
+                        {isExpired && (
+                          <Badge variant="destructive" className="mt-1">
+                            Vencido
+                          </Badge>
+                        )}
                       </div>
                       
                       <div className="text-right">
                         <p className="font-medium">
-                          {batch.remainingQuantity}/{batch.quantity} doses
+                          {batch.remainingQuantity}/{batch.quantity} doses {isExpired ? 'vencidas' : ''}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Vence: {new Date(batch.expirationDate).toLocaleDateString('pt-BR')}
                         </p>
                         <div className="w-20 bg-gray-200 rounded-full h-2 mt-1">
                           <div 
-                            className="bg-medical-blue h-2 rounded-full" 
+                            className={`h-2 rounded-full ${isExpired ? 'bg-red-600' : 'bg-medical-blue'}`}
                             style={{ width: `${usagePercentage}%` }}
                           ></div>
                         </div>

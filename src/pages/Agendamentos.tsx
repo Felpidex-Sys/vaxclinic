@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Calendar,
   Plus,
@@ -34,6 +36,8 @@ export const Agendamentos: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAgendamento, setEditingAgendamento] = useState<Agendamento | null>(null);
+  const [confirmingAgendamento, setConfirmingAgendamento] = useState<Agendamento | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
 
   useEffect(() => {
     fetchData();
@@ -211,25 +215,43 @@ export const Agendamentos: React.FC = () => {
     }
   };
 
-  const updateStatus = async (idAgendamento: number, status: Agendamento['status']) => {
+  const handleConfirmarAgendamento = (agendamento: Agendamento) => {
+    setConfirmingAgendamento(agendamento);
+    setSelectedEmployee('');
+  };
+
+  const handleFinalizarAgendamento = async () => {
+    if (!confirmingAgendamento || !selectedEmployee) {
+      toast({
+        title: "Erro",
+        description: "Selecione o funcionário que aplicou a vacina.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      // Deletar o agendamento
       const { error } = await supabase
         .from('agendamento')
-        .update({ status })
-        .eq('idagendamento', idAgendamento);
+        .delete()
+        .eq('idagendamento', confirmingAgendamento.idAgendamento);
 
       if (error) throw error;
 
       toast({
-        title: "Status atualizado",
-        description: `Agendamento marcado como ${status.toLowerCase()}.`,
+        title: "Agendamento confirmado",
+        description: "A vacina foi aplicada e o agendamento foi removido.",
       });
+      
+      setConfirmingAgendamento(null);
+      setSelectedEmployee('');
       fetchData();
     } catch (error: any) {
-      console.error('Erro ao atualizar status:', error);
+      console.error('Erro ao confirmar agendamento:', error);
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível atualizar o status.",
+        description: error.message || "Não foi possível confirmar o agendamento.",
         variant: "destructive",
       });
     }
@@ -435,7 +457,7 @@ export const Agendamentos: React.FC = () => {
                             size="sm"
                             variant="outline"
                             className="text-green-600 border-green-600 hover:bg-green-50"
-                            onClick={() => updateStatus(agendamento.idAgendamento, 'REALIZADO')}
+                            onClick={() => handleConfirmarAgendamento(agendamento)}
                           >
                             <CheckCircle className="w-4 h-4" />
                           </Button>
@@ -481,6 +503,51 @@ export const Agendamentos: React.FC = () => {
         currentUserId="1"
         editingAgendamento={editingAgendamento}
       />
+
+      {/* Confirm Dialog */}
+      <Dialog open={!!confirmingAgendamento} onOpenChange={(open) => !open && setConfirmingAgendamento(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Aplicação da Vacina</DialogTitle>
+            <DialogDescription>
+              Selecione o funcionário que aplicou a vacina e confirme.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="funcionario">Funcionário Responsável *</Label>
+              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o funcionário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmingAgendamento(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="medical-gradient text-white"
+                onClick={handleFinalizarAgendamento}
+              >
+                Confirmar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
