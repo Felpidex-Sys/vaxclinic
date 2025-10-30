@@ -176,6 +176,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 placeholder="000.000.000-00"
                 required
                 disabled={!!employee}
+                className={!!employee ? 'opacity-60 cursor-not-allowed' : ''}
               />
             </div>
             
