@@ -43,20 +43,24 @@ export const useAuthState = () => {
     setIsLoading(true);
     
     try {
+      const emailNormalizado = email.trim().toLowerCase();
+      
       // Buscar funcionário por email
       const { data: funcionario, error } = await supabase
         .from('funcionario')
         .select('*')
-        .eq('email', email)
+        .eq('email', emailNormalizado)
         .maybeSingle();
 
       if (error || !funcionario) {
+        console.error('Funcionário não encontrado:', error);
         setIsLoading(false);
         return false;
       }
 
       // Verificar se funcionário está ativo
       if (funcionario.status !== 'ATIVO') {
+        console.log('Funcionário inativo');
         setIsLoading(false);
         return false;
       }
@@ -65,6 +69,7 @@ export const useAuthState = () => {
       const senhaCorreta = await verifyPassword(password, funcionario.senha);
       
       if (!senhaCorreta) {
+        console.error('Senha incorreta');
         setIsLoading(false);
         return false;
       }

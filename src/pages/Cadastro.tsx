@@ -104,22 +104,49 @@ export const Cadastro: React.FC = () => {
       const senhaHash = await hashPassword(senha);
 
       // Criar funcionário (sempre como ADMIN)
-      const telefoneNumeros = telefone.replace(/\D/g, '');
-      const { error } = await supabase
+      const telefoneNumeros = telefone ? telefone.replace(/\D/g, '') : '';
+      
+      const funcionarioData: any = {
+        nomecompleto: nomeCompleto.trim(),
+        cpf: cpfNumeros,
+        email: email.trim().toLowerCase(),
+        cargo: 'ADMINISTRADOR',
+        senha: senhaHash,
+        status: 'ATIVO',
+        dataadmissao: new Date().toISOString().split('T')[0],
+      };
+
+      // Só adiciona telefone se tiver valor
+      if (telefoneNumeros && telefoneNumeros.length >= 10) {
+        funcionarioData.telefone = telefoneNumeros;
+      }
+
+      const { data: novoFuncionario, error } = await supabase
         .from('funcionario')
-        .insert({
-          nomecompleto: nomeCompleto,
-          cpf: cpfNumeros,
-          email: email,
-          telefone: telefoneNumeros || null,
-          cargo: 'ADMINISTRADOR',
-          senha: senhaHash,
-          status: 'ATIVO',
-          dataadmissao: new Date().toISOString().split('T')[0],
-        });
+        .insert(funcionarioData)
+        .select()
+        .single();
 
       if (error) {
         console.error('Erro ao cadastrar:', error);
+        let mensagemErro = "Erro ao criar cadastro. Tente novamente.";
+        
+        if (error.message.includes('duplicate')) {
+          mensagemErro = "Este CPF ou email já está cadastrado.";
+        } else if (error.message.includes('violates')) {
+          mensagemErro = "Dados inválidos. Verifique os campos e tente novamente.";
+        }
+        
+        toast({
+          title: "Erro no cadastro",
+          description: mensagemErro,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!novoFuncionario) {
         toast({
           title: "Erro",
           description: "Erro ao criar cadastro. Tente novamente.",
@@ -130,7 +157,7 @@ export const Cadastro: React.FC = () => {
       }
 
       // Login automático
-      const loginSuccess = await login(email, senha);
+      const loginSuccess = await login(email.trim().toLowerCase(), senha);
 
       if (loginSuccess) {
         toast({
@@ -139,9 +166,16 @@ export const Cadastro: React.FC = () => {
         });
       } else {
         toast({
-          title: "Cadastro realizado!",
-          description: "Por favor, faça login com suas credenciais.",
+          title: "Cadastro criado!",
+          description: "Houve um problema ao fazer login automático. Tente fazer login manualmente.",
         });
+        // Limpar formulário
+        setNomeCompleto('');
+        setCpf('');
+        setEmail('');
+        setTelefone('');
+        setSenha('');
+        setConfirmarSenha('');
       }
     } catch (error) {
       console.error('Erro no cadastro:', error);
