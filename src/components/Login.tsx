@@ -6,8 +6,6 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Syringe } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { verifyPassword } from '@/lib/crypto';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -27,51 +25,18 @@ export const Login: React.FC = () => {
       return;
     }
 
-    try {
-      // Buscar funcionário por email
-      const { data: funcionario, error } = await supabase
-        .from('funcionario')
-        .select('*')
-        .eq('email', email)
-        .single();
-
-      if (error || !funcionario) {
-        toast({
-          title: "Erro de autenticação",
-          description: "Email ou senha incorretos.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Verificar senha com bcrypt
-      const senhaCorreta = await verifyPassword(password, funcionario.senha);
-      
-      if (!senhaCorreta) {
-        toast({
-          title: "Erro de autenticação",
-          description: "Email ou senha incorretos.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Login bem-sucedido
-      const success = await login(email, password);
-      
-      if (!success) {
-        toast({
-          title: "Erro de autenticação",
-          description: "Erro ao fazer login no sistema.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Erro no login:', error);
+    const success = await login(email, password);
+    
+    if (!success) {
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao tentar fazer login.",
+        title: "Erro de autenticação",
+        description: "Email ou senha incorretos, ou usuário inativo.",
         variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Login realizado",
+        description: "Bem-vindo ao VixClinic!",
       });
     }
   };
@@ -133,11 +98,9 @@ export const Login: React.FC = () => {
             </form>
 
             <div className="mt-6 p-4 bg-medical-gray/20 rounded-lg">
-              <p className="text-sm font-medium mb-2">Contas de teste:</p>
+              <p className="text-sm font-medium mb-2">Conta de teste:</p>
               <div className="text-xs space-y-1 text-muted-foreground">
-                <p><strong>Admin:</strong> admin@vixclinic.com</p>
-                <p><strong>Funcionário:</strong> funcionario@vixclinic.com</p>
-                <p><strong>Vacinador:</strong> vacinador@vixclinic.com</p>
+                <p><strong>Email:</strong> admin@vixclinic.com</p>
                 <p><strong>Senha:</strong> 123456</p>
               </div>
             </div>

@@ -17,7 +17,6 @@ import {
   UserCheck,
   Syringe,
   FileText,
-  Shield,
   Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -58,12 +57,6 @@ const navigationItems = [
     url: '/relatorios',
     icon: FileText,
     permissions: ['all', 'read_reports'],
-  },
-  {
-    title: 'Permissões',
-    url: '/permissoes',
-    icon: Shield,
-    permissions: ['all'],
   },
 ];
 

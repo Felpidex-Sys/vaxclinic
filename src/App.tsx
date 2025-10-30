@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/AuthProvider";
 import { useAuth } from "@/hooks/useAuth";
-import Auth from "@/pages/Auth";
+import { Login } from "@/components/Login";
 import { Layout } from "@/components/Layout";
 import { Dashboard } from "@/components/Dashboard";
 import { Funcionarios } from "@/pages/Funcionarios";
@@ -13,7 +13,6 @@ import { Clientes } from "@/pages/Clientes";
 import { Vacinas } from "@/pages/Vacinas";
 import { Agendamentos } from "@/pages/Agendamentos";
 import { Relatorios } from "@/pages/Relatorios";
-import { Permissoes } from "@/pages/Permissoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,8 +34,7 @@ const AppContent = () => {
   if (!user) {
     return (
       <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="*" element={<Auth />} />
+        <Route path="*" element={<Login />} />
       </Routes>
     );
   }
@@ -45,13 +43,11 @@ const AppContent = () => {
     <Layout>
       <Routes>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/auth" element={<Auth />} />
         <Route path="/funcionarios" element={<Funcionarios />} />
         <Route path="/clientes" element={<Clientes />} />
         <Route path="/vacinas" element={<Vacinas />} />
         <Route path="/agendamentos" element={<Agendamentos />} />
         <Route path="/relatorios" element={<Relatorios />} />
-        <Route path="/permissoes" element={<Permissoes />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

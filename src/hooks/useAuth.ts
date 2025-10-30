@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { verifyPassword } from '@/lib/crypto';
 
 interface AuthContextType {
   user: User | null;
@@ -22,78 +22,68 @@ export const useAuth = () => {
 
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        if (session?.user?.email) {
-          setTimeout(() => {
-            fetchUserProfile(session.user.email!);
-          }, 0);
-        } else {
-          setUser(null);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user?.email) {
-        fetchUserProfile(session.user.email);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchUserProfile = async (userEmail: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('funcionario')
-        .select('*')
-        .eq('email', userEmail)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        const userData: User = {
-          id: data.idfuncionario.toString(),
-          name: data.nomecompleto,
-          email: data.email,
-          cpf: data.cpf,
-          role: data.cargo === 'ADMIN' ? 'admin' : 'funcionario',
-          permissions: data.cargo === 'ADMIN' ? ['all'] : ['read_clients', 'write_clients'],
-          active: data.status === 'ATIVO',
-          createdAt: new Date().toISOString(),
-        };
+    // Verificar se há sessão salva no localStorage
+    const savedUser = localStorage.getItem('vixclinic_user');
+    if (savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
         setUser(userData);
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
+        localStorage.removeItem('vixclinic_user');
       }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+    setIsLoading(false);
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Buscar funcionário por email
+      const { data: funcionario, error } = await supabase
+        .from('funcionario')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error || !funcionario) {
+        setIsLoading(false);
+        return false;
+      }
 
+      // Verificar se funcionário está ativo
+      if (funcionario.status !== 'ATIVO') {
+        setIsLoading(false);
+        return false;
+      }
+
+      // Verificar senha com bcrypt
+      const senhaCorreta = await verifyPassword(password, funcionario.senha);
+      
+      if (!senhaCorreta) {
+        setIsLoading(false);
+        return false;
+      }
+
+      // Criar objeto User
+      const userData: User = {
+        id: funcionario.idfuncionario.toString(),
+        name: funcionario.nomecompleto,
+        email: funcionario.email,
+        cpf: funcionario.cpf,
+        role: 'admin', // Todos são admin no novo modelo
+        permissions: ['all'],
+        active: funcionario.status === 'ATIVO',
+        createdAt: new Date().toISOString(),
+      };
+
+      // Salvar no localStorage e state
+      localStorage.setItem('vixclinic_user', JSON.stringify(userData));
+      setUser(userData);
       setIsLoading(false);
       return true;
     } catch (error) {
@@ -103,10 +93,9 @@ export const useAuthState = () => {
     }
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const logout = () => {
+    localStorage.removeItem('vixclinic_user');
     setUser(null);
-    setSession(null);
   };
 
   return { user, login, logout, isLoading };
