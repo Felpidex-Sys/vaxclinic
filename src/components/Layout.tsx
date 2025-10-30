@@ -1,17 +1,12 @@
 import React from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout } = useAuth();
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -26,21 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-medical-blue" />
-                <span className="font-medium">{user?.name}</span>
-                <span className="text-muted-foreground">({user?.role})</span>
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={logout}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Sair
-              </Button>
+              <p className="text-sm text-muted-foreground">Sistema de Gestão de Vacinação</p>
             </div>
           </header>
 

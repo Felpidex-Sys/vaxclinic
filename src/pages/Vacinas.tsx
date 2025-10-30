@@ -21,13 +21,11 @@ import { VaccineApplicationForm } from '@/components/forms/VaccineApplicationFor
 import { VaccineForm } from '@/components/forms/VaccineForm';
 import { BatchForm } from '@/components/forms/BatchForm';
 import { BatchManagementDialog } from '@/components/forms/BatchManagementDialog';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export const Vacinas: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { toast } = useToast();
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [batches, setBatches] = useState<VaccineBatch[]>([]);
@@ -740,7 +738,7 @@ export const Vacinas: React.FC = () => {
         vaccines={vaccines}
         batches={batches}
         onSave={handleSaveVaccination}
-        appliedBy={user?.id || ''}
+        appliedBy="1"
       />
 
       {/* Vaccine Form */}

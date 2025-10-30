@@ -13,13 +13,11 @@ import {
   Activity
 } from 'lucide-react';
 import { DashboardStats, Client, User, Vaccine, VaccineBatch, VaccinationRecord, Agendamento } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
@@ -196,7 +194,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-medical-blue">
-            Bem-vindo ao VixClinic, {user?.name?.split(' ')[0]}!
+            Bem-vindo ao VixClinic!
           </h1>
           <p className="text-muted-foreground">
             Visão geral do sistema de vacinação

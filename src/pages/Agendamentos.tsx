@@ -16,14 +16,12 @@ import {
   Trash2
 } from 'lucide-react';
 import { Agendamento, Client, VaccineBatch, User as UserType, Lote } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { AgendamentoForm } from '@/components/forms/AgendamentoForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocation } from 'react-router-dom';
 
 export const Agendamentos: React.FC = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
@@ -480,7 +478,7 @@ export const Agendamentos: React.FC = () => {
         batches={batches}
         employees={employees}
         onSave={handleSaveAgendamento}
-        currentUserId={user?.id || '1'}
+        currentUserId="1"
         editingAgendamento={editingAgendamento}
       />
     </div>
