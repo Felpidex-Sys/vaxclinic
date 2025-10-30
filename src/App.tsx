@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/AuthProvider";
 import { useAuth } from "@/hooks/useAuth";
-import { Login } from "@/components/Login";
+import { Cadastro } from "@/pages/Cadastro";
 import { Layout } from "@/components/Layout";
 import { Dashboard } from "@/components/Dashboard";
 import { Funcionarios } from "@/pages/Funcionarios";
@@ -34,7 +34,7 @@ const AppContent = () => {
   if (!user) {
     return (
       <Routes>
-        <Route path="*" element={<Login />} />
+        <Route path="*" element={<Cadastro />} />
       </Routes>
     );
   }
