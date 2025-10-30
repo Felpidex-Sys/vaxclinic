@@ -26,13 +26,36 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    name: employee?.name || '',
-    email: employee?.email || '',
-    cpf: employee?.cpf || '',
-    role: employee?.role || 'funcionario' as User['role'],
-    permissions: employee?.permissions || [],
-    active: employee?.active ?? true,
+    name: '',
+    email: '',
+    cpf: '',
+    role: 'funcionario' as User['role'],
+    permissions: [],
+    active: true,
   });
+
+  // Update form data when employee prop changes
+  React.useEffect(() => {
+    if (employee) {
+      setFormData({
+        name: employee.name,
+        email: employee.email,
+        cpf: employee.cpf,
+        role: employee.role,
+        permissions: employee.permissions,
+        active: employee.active,
+      });
+    } else {
+      setFormData({
+        name: '',
+        email: '',
+        cpf: '',
+        role: 'funcionario',
+        permissions: [],
+        active: true,
+      });
+    }
+  }, [employee, open]);
 
   const availablePermissions = [
     { id: 'all', label: 'Todas as permissões (Admin)' },

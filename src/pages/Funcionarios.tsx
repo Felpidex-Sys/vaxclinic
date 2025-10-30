@@ -304,27 +304,25 @@ export const Funcionarios: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditEmployee(employee)}
-                        disabled={employee.role === 'admin'}
-                        title={employee.role === 'admin' ? 'Admin não pode ser editado' : 'Editar funcionário'}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteEmployee(employee)}
-                        disabled={employee.role === 'admin'}
-                        title={employee.role === 'admin' ? 'Admin não pode ser excluído' : 'Excluir funcionário'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    {employee.role !== 'admin' && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditEmployee(employee)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteEmployee(employee)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
