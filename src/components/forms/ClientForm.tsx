@@ -141,6 +141,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                 placeholder="000.000.000-00"
                 required
                 disabled={!!client}
+                className={!!client ? 'opacity-60 cursor-not-allowed' : ''}
               />
             </div>
             
