@@ -10,6 +10,10 @@ import { Clientes } from "@/pages/Clientes";
 import { Vacinas } from "@/pages/Vacinas";
 import { Agendamentos } from "@/pages/Agendamentos";
 import { Relatorios } from "@/pages/Relatorios";
+import { InitialSetup } from "@/pages/InitialSetup";
+import { Login } from "@/pages/Login";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,17 +24,58 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Layout>
+        <AuthProvider>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/funcionarios" element={<Funcionarios />} />
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/vacinas" element={<Vacinas />} />
-            <Route path="/agendamentos" element={<Agendamentos />} />
-            <Route path="/relatorios" element={<Relatorios />} />
+            {/* Public routes */}
+            <Route path="/setup" element={<InitialSetup />} />
+            <Route path="/login" element={<Login />} />
+            
+            {/* Protected routes */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/funcionarios" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Funcionarios />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/clientes" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Clientes />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/vacinas" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Vacinas />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/agendamentos" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Agendamentos />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/relatorios" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Relatorios />
+                </Layout>
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Layout>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

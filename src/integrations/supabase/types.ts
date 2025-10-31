@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      administradores: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome_clinica: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          nome_clinica: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome_clinica?: string
+        }
+        Relationships: []
+      }
       agendamento: {
         Row: {
           cliente_cpf: string
@@ -154,6 +175,27 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracao_sistema: {
+        Row: {
+          created_at: string
+          id: string
+          nome_clinica: string | null
+          setup_completo: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome_clinica?: string | null
+          setup_completo?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome_clinica?: string | null
+          setup_completo?: boolean
+        }
+        Relationships: []
+      }
       funcionario: {
         Row: {
           cargo: string | null
@@ -264,6 +306,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       vacina: {
         Row: {
           categoria: Database["public"]["Enums"]["vacina_categoria"] | null
@@ -302,10 +365,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       agendamento_status: "AGENDADO" | "REALIZADO"
+      app_role: "admin" | "funcionario"
       cliente_status: "ATIVO" | "INATIVO"
       funcionario_status: "ATIVO" | "INATIVO"
       vacina_categoria: "VIRAL" | "BACTERIANA" | "OUTRA"
@@ -438,6 +508,7 @@ export const Constants = {
   public: {
     Enums: {
       agendamento_status: ["AGENDADO", "REALIZADO"],
+      app_role: ["admin", "funcionario"],
       cliente_status: ["ATIVO", "INATIVO"],
       funcionario_status: ["ATIVO", "INATIVO"],
       vacina_categoria: ["VIRAL", "BACTERIANA", "OUTRA"],
