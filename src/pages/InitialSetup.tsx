@@ -99,6 +99,14 @@ export const InitialSetup = () => {
 
       if (configError) throw configError;
 
+      // Auto-login após criar conta
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.senha,
+      });
+
+      if (signInError) throw signInError;
+
       toast.success('Conta de administrador criada com sucesso!');
       navigate('/');
     } catch (error: any) {
@@ -112,6 +120,9 @@ export const InitialSetup = () => {
           }
         });
         setErrors(fieldErrors);
+      } else if (error.code === 'user_already_exists') {
+        toast.error('Este email já está registrado. Por favor, faça login.');
+        navigate('/login');
       } else {
         toast.error(error.message || 'Erro ao criar conta. Tente novamente.');
       }
