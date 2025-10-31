@@ -55,6 +55,32 @@ export const InitialSetup = () => {
       // Validate form
       setupSchema.parse(formData);
 
+      // Check if setup was already completed
+      const { data: configCheck } = await supabase
+        .from('configuracao_sistema')
+        .select('setup_completo')
+        .single();
+
+      if (configCheck?.setup_completo) {
+        // Setup already done, try to login instead
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.senha,
+        });
+
+        if (signInError) {
+          toast.error('Setup já foi concluído. Redirecionando para login...');
+          navigate('/login');
+          return;
+        }
+
+        toast.success('Login realizado com sucesso!');
+        // Wait for auth state to update before navigating
+        await new Promise(resolve => setTimeout(resolve, 500));
+        navigate('/');
+        return;
+      }
+
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -108,6 +134,9 @@ export const InitialSetup = () => {
       if (signInError) throw signInError;
 
       toast.success('Conta de administrador criada com sucesso!');
+      
+      // Wait for auth state to update before navigating
+      await new Promise(resolve => setTimeout(resolve, 500));
       navigate('/');
     } catch (error: any) {
       console.error('Setup error:', error);

@@ -22,11 +22,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (!authLoading && !loading) {
-      // Route logic
-      if (!setupComplete) {
+      const currentPath = window.location.pathname;
+      
+      // Route logic - only redirect if not already on the right page
+      if (!setupComplete && currentPath !== '/setup') {
         navigate('/setup');
-      } else if (!user) {
+      } else if (setupComplete && !user && currentPath !== '/login') {
         navigate('/login');
+      } else if (setupComplete && user && (currentPath === '/setup' || currentPath === '/login')) {
+        // User is logged in, redirect to home if on auth pages
+        navigate('/');
       }
     }
   }, [setupComplete, user, loading, authLoading, navigate]);
