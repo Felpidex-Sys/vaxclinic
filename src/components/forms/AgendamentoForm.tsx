@@ -69,7 +69,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
 
     const agendamento: Omit<Agendamento, 'idAgendamento'> = {
       Cliente_CPF: formData.Cliente_CPF,
-      Funcionario_idFuncionario: 0, // Será atribuído quando o agendamento for realizado
+      Funcionario_idFuncionario: null,
       Lote_numLote: formData.Lote_numLote,
       dataAgendada: new Date(formData.dataAgendada).toISOString(),
       status: 'AGENDADO',

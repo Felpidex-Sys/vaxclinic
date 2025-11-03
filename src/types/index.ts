@@ -54,7 +54,7 @@ export interface Agendamento {
   status: 'AGENDADO' | 'REALIZADO';
   observacoes?: string;
   Cliente_CPF: number;
-  Funcionario_idFuncionario: number;
+  Funcionario_idFuncionario: number | null;
   Lote_numLote: number;
 }
 
