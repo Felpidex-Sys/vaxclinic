@@ -45,6 +45,26 @@ export const Vacinas: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    
+    // Configurar listeners de realtime para atualização automática
+    const loteChannel = supabase
+      .channel('lote-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lote' }, () => {
+        fetchData();
+      })
+      .subscribe();
+    
+    const agendamentoChannel = supabase
+      .channel('agendamento-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamento' }, () => {
+        fetchData();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(loteChannel);
+      supabase.removeChannel(agendamentoChannel);
+    };
   }, []);
 
   const fetchData = async () => {
