@@ -61,6 +61,7 @@ export const Funcionarios: React.FC = () => {
         permissions: [],
         active: func.status === 'ATIVO',
         createdAt: new Date().toISOString(),
+        coren: func.coren,
       }));
 
       setEmployees(mappedEmployees);
@@ -100,7 +101,7 @@ export const Funcionarios: React.FC = () => {
     }
   };
 
-  const handleSaveEmployee = async (employeeData: Omit<User, 'id' | 'createdAt'>) => {
+  const handleSaveEmployee = async (employeeData: any) => {
     try {
       if (editingEmployee) {
         const { error } = await supabase
@@ -108,7 +109,8 @@ export const Funcionarios: React.FC = () => {
           .update({
             nomecompleto: employeeData.name,
             email: employeeData.email,
-            cargo: employeeData.role,
+            cpf: employeeData.cpf,
+            coren: employeeData.coren,
             status: employeeData.active ? 'ATIVO' : 'INATIVO',
           })
           .eq('idfuncionario', parseInt(editingEmployee.id));
@@ -120,24 +122,6 @@ export const Funcionarios: React.FC = () => {
           description: 'Os dados foram atualizados com sucesso.',
         });
       } else {
-        // Create Supabase Auth user for new employee
-        const tempPassword = `Temp@${Math.random().toString(36).slice(-8)}`;
-        
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: employeeData.email,
-          password: tempPassword,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              nome: employeeData.name,
-              cpf: employeeData.cpf
-            }
-          }
-        });
-
-        if (authError) throw authError;
-        if (!authData.user) throw new Error('Erro ao criar usuário de autenticação');
-
         // Insert funcionario record
         const { error: funcError } = await supabase
           .from('funcionario')
@@ -145,26 +129,15 @@ export const Funcionarios: React.FC = () => {
             cpf: employeeData.cpf,
             nomecompleto: employeeData.name,
             email: employeeData.email,
-            cargo: employeeData.role,
-            senha: tempPassword,
+            coren: employeeData.coren,
             status: 'ATIVO',
           });
 
         if (funcError) throw funcError;
 
-        // Add 'funcionario' role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: authData.user.id,
-            role: 'funcionario'
-          });
-
-        if (roleError) throw roleError;
-
         toast({
           title: 'Funcionário cadastrado',
-          description: `O funcionário foi adicionado. Senha temporária: ${tempPassword}`,
+          description: 'O funcionário foi adicionado com sucesso.',
         });
       }
 

@@ -4,18 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { MaskedInput } from '@/components/ui/masked-input';
 import { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { funcionarioSchema, formatCPF, senhaSchema } from '@/lib/validations';
-import { hashPassword } from '@/lib/crypto';
+import { funcionarioSchema, formatCPF } from '@/lib/validations';
+import { z } from 'zod';
 
 interface EmployeeFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employee?: User;
-  onSave: (employee: Omit<User, 'id' | 'createdAt'>) => void;
+  onSave: (employee: any) => void;
 }
 
 export const EmployeeForm: React.FC<EmployeeFormProps> = ({
@@ -29,8 +28,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     name: '',
     email: '',
     cpf: '',
-    role: 'funcionario' as User['role'],
-    permissions: [],
+    coren: '',
     active: true,
   });
 
@@ -41,8 +39,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         name: employee.name,
         email: employee.email,
         cpf: employee.cpf,
-        role: employee.role,
-        permissions: employee.permissions,
+        coren: (employee as any).coren || '',
         active: employee.active,
       });
     } else {
@@ -50,24 +47,11 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         name: '',
         email: '',
         cpf: '',
-        role: 'funcionario',
-        permissions: [],
+        coren: '',
         active: true,
       });
     }
   }, [employee, open]);
-
-  const availablePermissions = [
-    { id: 'all', label: 'Todas as permissões (Admin)' },
-    { id: 'read_clients', label: 'Visualizar clientes' },
-    { id: 'write_clients', label: 'Gerenciar clientes' },
-    { id: 'read_vaccines', label: 'Visualizar vacinas' },
-    { id: 'write_vaccines', label: 'Gerenciar vacinas' },
-    { id: 'apply_vaccines', label: 'Aplicar vacinas' },
-    { id: 'read_reports', label: 'Visualizar relatórios' },
-    { id: 'write_reports', label: 'Gerenciar relatórios' },
-    { id: 'manage_users', label: 'Gerenciar usuários' },
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,12 +66,14 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     try {
       funcionarioSchema.parse(cleanedData);
     } catch (error: any) {
-      const errorMessage = error.errors?.[0]?.message || "Dados inválidos";
-      toast({
-        title: "Erro de validação",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        const errorMessage = error.errors?.[0]?.message || "Dados inválidos";
+        toast({
+          title: "Erro de validação",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
       return;
     }
 
@@ -97,8 +83,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       name: '',
       email: '',
       cpf: '',
-      role: 'funcionario',
-      permissions: [],
+      coren: '',
       active: true,
     });
     
@@ -106,29 +91,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       title: employee ? "Funcionário atualizado" : "Funcionário cadastrado",
       description: employee ? "As informações foram atualizadas com sucesso." : "Novo funcionário foi cadastrado com sucesso.",
     });
-  };
-
-  const handlePermissionChange = (permissionId: string, checked: boolean) => {
-    if (permissionId === 'all') {
-      if (checked) {
-        setFormData({ ...formData, permissions: ['all'] });
-      } else {
-        setFormData({ ...formData, permissions: [] });
-      }
-    } else {
-      let newPermissions = [...formData.permissions];
-      
-      // Remove 'all' if it exists and we're adding specific permissions
-      newPermissions = newPermissions.filter(p => p !== 'all');
-      
-      if (checked) {
-        newPermissions.push(permissionId);
-      } else {
-        newPermissions = newPermissions.filter(p => p !== permissionId);
-      }
-      
-      setFormData({ ...formData, permissions: newPermissions });
-    }
   };
 
   return (
@@ -181,17 +143,13 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="role">Cargo *</Label>
-              <Select value={formData.role} onValueChange={(value: User['role']) => setFormData({ ...formData, role: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cargo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="funcionario">Funcionário</SelectItem>
-                  <SelectItem value="vacinador">Vacinador</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="coren">COREN</Label>
+              <Input
+                id="coren"
+                value={formData.coren}
+                onChange={(e) => setFormData({ ...formData, coren: e.target.value })}
+                placeholder="123456-SP"
+              />
             </div>
           </div>
           
@@ -209,24 +167,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 <SelectItem value="false">Inativo</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          
-          <div>
-            <Label>Permissões</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-              {availablePermissions.map((permission) => (
-                <div key={permission.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={permission.id}
-                    checked={formData.permissions.includes(permission.id)}
-                    onCheckedChange={(checked) => handlePermissionChange(permission.id, checked as boolean)}
-                  />
-                  <Label htmlFor={permission.id} className="text-sm">
-                    {permission.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
           </div>
           
           <div className="flex justify-end gap-2 pt-4">

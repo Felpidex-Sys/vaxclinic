@@ -54,16 +54,8 @@ export const funcionarioSchema = z.object({
     .refine((val) => val.trim().length > 0, "Nome não pode estar vazio"),
   email: emailSchema,
   cpf: cpfSchema,
-  role: z.string().min(1, "Cargo é obrigatório"),
-  permissions: z.array(z.string()),
+  coren: z.string().max(20, "COREN deve ter no máximo 20 caracteres").optional(),
   active: z.boolean(),
-  dataAdmissao: z.string()
-    .optional()
-    .refine((date) => {
-      if (!date) return true;
-      const admissionDate = new Date(date);
-      return admissionDate <= new Date();
-    }, "Data de admissão não pode ser no futuro"),
 });
 
 // Schema para Lote

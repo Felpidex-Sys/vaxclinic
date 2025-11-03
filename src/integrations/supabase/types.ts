@@ -199,34 +199,34 @@ export type Database = {
       funcionario: {
         Row: {
           cargo: string | null
+          coren: string | null
           cpf: string
           dataadmissao: string | null
           email: string
           idfuncionario: number
           nomecompleto: string
-          senha: string
           status: Database["public"]["Enums"]["funcionario_status"]
           telefone: string | null
         }
         Insert: {
           cargo?: string | null
+          coren?: string | null
           cpf: string
           dataadmissao?: string | null
           email: string
           idfuncionario?: number
           nomecompleto: string
-          senha: string
           status?: Database["public"]["Enums"]["funcionario_status"]
           telefone?: string | null
         }
         Update: {
           cargo?: string | null
+          coren?: string | null
           cpf?: string
           dataadmissao?: string | null
           email?: string
           idfuncionario?: number
           nomecompleto?: string
-          senha?: string
           status?: Database["public"]["Enums"]["funcionario_status"]
           telefone?: string | null
         }
