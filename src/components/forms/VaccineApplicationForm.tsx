@@ -78,24 +78,8 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
 
       if (aplicacaoError) throw aplicacaoError;
 
-      // Atualizar o estoque do lote
-      // Buscar a quantidade atual
-      const { data: loteAtual, error: loteSelectError } = await supabase
-        .from('lote')
-        .select('quantidadedisponivel')
-        .eq('numlote', parseInt(formData.batchId))
-        .single();
-
-      if (loteSelectError) throw loteSelectError;
-
-      // Atualizar com a nova quantidade
-      const { error: updateError } = await supabase
-        .from('lote')
-        .update({ quantidadedisponivel: (loteAtual?.quantidadedisponivel || 1) - 1 })
-        .eq('numlote', parseInt(formData.batchId));
+      // O estoque é atualizado automaticamente pelo trigger ao inserir a aplicação
       
-      if (updateError) throw updateError;
-
       const vaccination: Omit<VaccinationRecord, 'id' | 'createdAt'> = {
         ...formData,
         appliedBy,
