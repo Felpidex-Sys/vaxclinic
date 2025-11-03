@@ -231,13 +231,34 @@ export const Agendamentos: React.FC = () => {
     }
 
     try {
-      // Deletar o agendamento
-      const { error } = await supabase
+      // Atualizar status para REALIZADO antes de deletar
+      const { error: updateError } = await supabase
+        .from('agendamento')
+        .update({ status: 'REALIZADO' })
+        .eq('idagendamento', confirmingAgendamento.idAgendamento);
+
+      if (updateError) throw updateError;
+
+      // Criar registro de aplicação
+      const { error: aplicacaoError } = await supabase
+        .from('aplicacao')
+        .insert({
+          dataaplicacao: new Date().toISOString().split('T')[0],
+          funcionario_idfuncionario: parseInt(selectedEmployee),
+          cliente_cpf: confirmingAgendamento.Cliente_CPF.toString(),
+          agendamento_idagendamento: confirmingAgendamento.idAgendamento,
+          observacoes: confirmingAgendamento.observacoes,
+        });
+
+      if (aplicacaoError) throw aplicacaoError;
+
+      // Agora deletar o agendamento (com status REALIZADO, não devolve estoque)
+      const { error: deleteError } = await supabase
         .from('agendamento')
         .delete()
         .eq('idagendamento', confirmingAgendamento.idAgendamento);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
 
       toast({
         title: "Agendamento confirmado",
