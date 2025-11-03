@@ -186,13 +186,11 @@ export const Vacinas: React.FC = () => {
   };
 
   const getTotalDoses = () => {
-    return batches.reduce((total, batch) => total + batch.remainingQuantity, 0);
+    return batches.reduce((total, batch) => total + batch.quantity, 0);
   };
 
   const getAvailableDoses = () => {
-    const totalDoses = getTotalDoses();
-    const scheduledDoses = getScheduledVaccines();
-    return totalDoses - scheduledDoses;
+    return batches.reduce((total, batch) => total + batch.remainingQuantity, 0);
   };
 
   const scheduledVaccines = getScheduledVaccines();
@@ -493,7 +491,7 @@ export const Vacinas: React.FC = () => {
               <Package className="w-5 h-5 text-teal-600" />
               <div>
                 <p className="text-2xl font-bold text-teal-600">{totalDoses}</p>
-                <p className="text-sm text-muted-foreground">Total</p>
+                <p className="text-sm text-muted-foreground">Total de Doses</p>
               </div>
             </div>
           </CardContent>
