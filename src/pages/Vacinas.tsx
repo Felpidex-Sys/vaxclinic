@@ -206,8 +206,10 @@ export const Vacinas: React.FC = () => {
   };
 
   const getTotalDoses = () => {
-    // Total = soma da quantidade inicial de todos os lotes (estoque total comprado)
-    return batches.reduce((total, batch) => total + batch.quantity, 0);
+    // Total = doses disponíveis + doses agendadas (ainda na clínica)
+    const disponivel = batches.reduce((total, batch) => total + batch.remainingQuantity, 0);
+    const agendado = agendamentos.filter(ag => ag.status === 'AGENDADO').length;
+    return disponivel + agendado;
   };
 
   const getAvailableDoses = () => {
