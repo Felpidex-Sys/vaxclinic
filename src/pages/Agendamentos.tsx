@@ -38,7 +38,6 @@ export const Agendamentos: React.FC = () => {
   const [editingAgendamento, setEditingAgendamento] = useState<Agendamento | null>(null);
   const [confirmingAgendamento, setConfirmingAgendamento] = useState<Agendamento | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
-  const [applicationDate, setApplicationDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     fetchData();
@@ -219,7 +218,6 @@ export const Agendamentos: React.FC = () => {
   const handleConfirmarAgendamento = (agendamento: Agendamento) => {
     setConfirmingAgendamento(agendamento);
     setSelectedEmployee('');
-    setApplicationDate(new Date().toISOString().split('T')[0]);
   };
 
   const handleFinalizarAgendamento = async () => {
@@ -237,7 +235,7 @@ export const Agendamentos: React.FC = () => {
       const { error: aplicacaoError } = await supabase
         .from('aplicacao')
         .insert({
-          dataaplicacao: applicationDate,
+          dataaplicacao: new Date().toISOString().split('T')[0],
           funcionario_idfuncionario: parseInt(selectedEmployee),
           cliente_cpf: confirmingAgendamento.Cliente_CPF.toString(),
           agendamento_idagendamento: confirmingAgendamento.idAgendamento,
@@ -253,7 +251,6 @@ export const Agendamentos: React.FC = () => {
       
       setConfirmingAgendamento(null);
       setSelectedEmployee('');
-      setApplicationDate(new Date().toISOString().split('T')[0]);
       fetchData();
     } catch (error: any) {
       console.error('Erro ao confirmar agendamento:', error);
@@ -517,14 +514,13 @@ export const Agendamentos: React.FC = () => {
         if (!open) {
           setConfirmingAgendamento(null);
           setSelectedEmployee('');
-          setApplicationDate(new Date().toISOString().split('T')[0]);
         }
       }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Aplicação da Vacina</DialogTitle>
             <DialogDescription>
-              Selecione o funcionário responsável e a data da aplicação
+              Selecione o funcionário responsável pela aplicação
             </DialogDescription>
           </DialogHeader>
           
@@ -544,17 +540,6 @@ export const Agendamentos: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-
-            <div>
-              <Label htmlFor="applicationDate">Data da Aplicação *</Label>
-              <Input
-                id="applicationDate"
-                type="date"
-                value={applicationDate}
-                onChange={(e) => setApplicationDate(e.target.value)}
-                required
-              />
-            </div>
             
             <div className="flex justify-end gap-2">
               <Button
@@ -562,7 +547,6 @@ export const Agendamentos: React.FC = () => {
                 onClick={() => {
                   setConfirmingAgendamento(null);
                   setSelectedEmployee('');
-                  setApplicationDate(new Date().toISOString().split('T')[0]);
                 }}
               >
                 Cancelar
