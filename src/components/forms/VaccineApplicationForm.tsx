@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Client, Vaccine, VaccineBatch, VaccinationRecord } from '@/types';
+import { Client, Vaccine, VaccineBatch, VaccinationRecord, User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -15,8 +15,8 @@ interface VaccineApplicationFormProps {
   clients: Client[];
   vaccines: Vaccine[];
   batches: VaccineBatch[];
+  employees: User[];
   onSave: (vaccination: Omit<VaccinationRecord, 'id' | 'createdAt'>) => void;
-  appliedBy: string;
 }
 
 export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
@@ -25,19 +25,22 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
   clients,
   vaccines,
   batches,
+  employees,
   onSave,
-  appliedBy,
 }) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     clientId: '',
     vaccineId: '',
     batchId: '',
+    employeeId: '',
     doseNumber: 1,
     applicationDate: new Date().toISOString().split('T')[0],
     nextDueDate: '',
     notes: '',
   });
+
+  const activeEmployees = employees.filter(emp => emp.active === true);
 
   const availableBatches = batches.filter(batch => {
     if (batch.vaccineId !== formData.vaccineId) return false;
@@ -54,7 +57,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.clientId || !formData.vaccineId || !formData.batchId) {
+    if (!formData.clientId || !formData.vaccineId || !formData.batchId || !formData.employeeId) {
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -69,7 +72,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
         .from('aplicacao')
         .insert({
           cliente_cpf: formData.clientId,
-          funcionario_idfuncionario: parseInt(appliedBy),
+          funcionario_idfuncionario: parseInt(formData.employeeId),
           agendamento_idagendamento: null, // Aplicação sem agendamento prévio
           dataaplicacao: formData.applicationDate,
           dose: formData.doseNumber,
@@ -82,7 +85,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
       
       const vaccination: Omit<VaccinationRecord, 'id' | 'createdAt'> = {
         ...formData,
-        appliedBy,
+        appliedBy: formData.employeeId,
         applicationDate: new Date(formData.applicationDate).toISOString(),
         nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate).toISOString() : '',
       };
@@ -93,6 +96,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
         clientId: '',
         vaccineId: '',
         batchId: '',
+        employeeId: '',
         doseNumber: 1,
         applicationDate: new Date().toISOString().split('T')[0],
         nextDueDate: '',
@@ -135,6 +139,22 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name} - {client.cpf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="employee">Vacinador *</Label>
+              <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o vacinador" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeEmployees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name} - {employee.role}
                     </SelectItem>
                   ))}
                 </SelectContent>

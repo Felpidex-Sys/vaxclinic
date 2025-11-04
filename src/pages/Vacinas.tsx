@@ -132,10 +132,11 @@ export const Vacinas: React.FC = () => {
 
       setClients(mappedClients);
 
-      // Fetch employees
+      // Fetch employees (apenas ativos)
       const { data: funcionariosData, error: funcionariosError } = await supabase
         .from('funcionario')
-        .select('*');
+        .select('*')
+        .eq('status', 'ATIVO');
 
       if (funcionariosError) throw funcionariosError;
 
@@ -770,8 +771,8 @@ export const Vacinas: React.FC = () => {
         clients={clients}
         vaccines={vaccines}
         batches={batches}
+        employees={employees}
         onSave={handleSaveVaccination}
-        appliedBy="1"
       />
 
       {/* Vaccine Form */}
