@@ -38,6 +38,7 @@ export const Agendamentos: React.FC = () => {
   const [editingAgendamento, setEditingAgendamento] = useState<Agendamento | null>(null);
   const [confirmingAgendamento, setConfirmingAgendamento] = useState<Agendamento | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+  const [applicationDate, setApplicationDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     fetchData();
@@ -218,6 +219,7 @@ export const Agendamentos: React.FC = () => {
   const handleConfirmarAgendamento = (agendamento: Agendamento) => {
     setConfirmingAgendamento(agendamento);
     setSelectedEmployee('');
+    setApplicationDate(new Date().toISOString().split('T')[0]);
   };
 
   const handleFinalizarAgendamento = async () => {
@@ -231,19 +233,11 @@ export const Agendamentos: React.FC = () => {
     }
 
     try {
-      // Atualizar status para REALIZADO antes de deletar
-      const { error: updateError } = await supabase
-        .from('agendamento')
-        .update({ status: 'REALIZADO' })
-        .eq('idagendamento', confirmingAgendamento.idAgendamento);
-
-      if (updateError) throw updateError;
-
-      // Criar registro de aplicação
+      // Criar registro de aplicação (trigger do banco atualiza status para REALIZADO automaticamente)
       const { error: aplicacaoError } = await supabase
         .from('aplicacao')
         .insert({
-          dataaplicacao: new Date().toISOString().split('T')[0],
+          dataaplicacao: applicationDate,
           funcionario_idfuncionario: parseInt(selectedEmployee),
           cliente_cpf: confirmingAgendamento.Cliente_CPF.toString(),
           agendamento_idagendamento: confirmingAgendamento.idAgendamento,
@@ -252,21 +246,14 @@ export const Agendamentos: React.FC = () => {
 
       if (aplicacaoError) throw aplicacaoError;
 
-      // Agora deletar o agendamento (com status REALIZADO, não devolve estoque)
-      const { error: deleteError } = await supabase
-        .from('agendamento')
-        .delete()
-        .eq('idagendamento', confirmingAgendamento.idAgendamento);
-
-      if (deleteError) throw deleteError;
-
       toast({
         title: "Agendamento confirmado",
-        description: "A vacina foi aplicada e o agendamento foi removido.",
+        description: "A vacina foi aplicada com sucesso.",
       });
       
       setConfirmingAgendamento(null);
       setSelectedEmployee('');
+      setApplicationDate(new Date().toISOString().split('T')[0]);
       fetchData();
     } catch (error: any) {
       console.error('Erro ao confirmar agendamento:', error);
@@ -526,12 +513,18 @@ export const Agendamentos: React.FC = () => {
       />
 
       {/* Confirm Dialog */}
-      <Dialog open={!!confirmingAgendamento} onOpenChange={(open) => !open && setConfirmingAgendamento(null)}>
+      <Dialog open={!!confirmingAgendamento} onOpenChange={(open) => {
+        if (!open) {
+          setConfirmingAgendamento(null);
+          setSelectedEmployee('');
+          setApplicationDate(new Date().toISOString().split('T')[0]);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Aplicação da Vacina</DialogTitle>
             <DialogDescription>
-              Selecione o funcionário que aplicou a vacina e confirme.
+              Selecione o funcionário responsável e a data da aplicação
             </DialogDescription>
           </DialogHeader>
           
@@ -551,11 +544,26 @@ export const Agendamentos: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <Label htmlFor="applicationDate">Data da Aplicação *</Label>
+              <Input
+                id="applicationDate"
+                type="date"
+                value={applicationDate}
+                onChange={(e) => setApplicationDate(e.target.value)}
+                required
+              />
+            </div>
             
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                onClick={() => setConfirmingAgendamento(null)}
+                onClick={() => {
+                  setConfirmingAgendamento(null);
+                  setSelectedEmployee('');
+                  setApplicationDate(new Date().toISOString().split('T')[0]);
+                }}
               >
                 Cancelar
               </Button>
@@ -563,7 +571,7 @@ export const Agendamentos: React.FC = () => {
                 className="medical-gradient text-white"
                 onClick={handleFinalizarAgendamento}
               >
-                Confirmar
+                Confirmar Aplicação
               </Button>
             </div>
           </div>
