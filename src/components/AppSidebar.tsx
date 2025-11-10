@@ -18,6 +18,7 @@ import {
   Syringe,
   FileText,
   Calendar,
+  ClipboardList,
 } from 'lucide-react';
 
 const navigationItems = [
@@ -45,6 +46,11 @@ const navigationItems = [
     title: 'Agendamentos',
     url: '/agendamentos',
     icon: Calendar,
+  },
+  {
+    title: 'Histórico',
+    url: '/historico',
+    icon: ClipboardList,
   },
   {
     title: 'Relatórios',

@@ -10,6 +10,7 @@ import { Clientes } from "@/pages/Clientes";
 import { Vacinas } from "@/pages/Vacinas";
 import { Agendamentos } from "@/pages/Agendamentos";
 import { Relatorios } from "@/pages/Relatorios";
+import { Historico } from "@/pages/Historico";
 import { InitialSetup } from "@/pages/InitialSetup";
 import { Login } from "@/pages/Login";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -70,6 +71,13 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <Relatorios />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/historico" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Historico />
                 </Layout>
               </ProtectedRoute>
             } />
