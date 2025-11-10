@@ -109,14 +109,14 @@ export const Historico: React.FC = () => {
             .from('cliente')
             .select('nomecompleto, cpf, alergias')
             .eq('cpf', aplicacao.cliente_cpf)
-            .single();
+            .maybeSingle();
 
           // Buscar funcionário
           const { data: funcionarioData } = await supabase
             .from('funcionario')
             .select('nomecompleto')
             .eq('idfuncionario', aplicacao.funcionario_idfuncionario)
-            .single();
+            .maybeSingle();
 
           // Buscar informações da vacina e lote
           let vacinaInfo = { nome: 'N/A', fabricante: 'N/A', codigolote: 'N/A' };
@@ -130,7 +130,7 @@ export const Historico: React.FC = () => {
               .from('agendamento')
               .select('lote_numlote')
               .eq('idagendamento', aplicacao.agendamento_idagendamento)
-              .single();
+              .maybeSingle();
             
             if (agendamentoData) {
               loteNumero = agendamentoData.lote_numlote;
@@ -143,14 +143,14 @@ export const Historico: React.FC = () => {
               .from('lote')
               .select('codigolote, vacina_idvacina')
               .eq('numlote', loteNumero)
-              .single();
+              .maybeSingle();
 
             if (loteData) {
               const { data: vacinaData } = await supabase
                 .from('vacina')
                 .select('nome, fabricante')
                 .eq('idvacina', loteData.vacina_idvacina)
-                .single();
+                .maybeSingle();
 
               if (vacinaData) {
                 vacinaInfo = {
