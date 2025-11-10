@@ -42,12 +42,16 @@ export const Dashboard: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesData, agendamentosData] = await Promise.all([
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+      
+      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesData, aplicacoesHojeData, agendamentosData] = await Promise.all([
         supabase.from('cliente').select('*'),
         supabase.from('funcionario').select('*'),
         supabase.from('vacina').select('*'),
         supabase.from('lote').select('*'),
         supabase.from('aplicacao').select('*').order('dataaplicacao', { ascending: false }).limit(5),
+        supabase.from('aplicacao').select('idaplicacao').gte('dataaplicacao', `${today}T00:00:00`).lte('dataaplicacao', `${today}T23:59:59`),
         supabase.from('agendamento').select('*').eq('status', 'REALIZADO').order('dataagendada', { ascending: false }).limit(5),
       ]);
 
@@ -107,13 +111,7 @@ export const Dashboard: React.FC = () => {
       setBatches(mappedBatches);
 
       // Calcular estatísticas
-      const today = new Date().toISOString().split('T')[0];
-      const vacinacoesHoje = (aplicacoesData.data || []).filter(
-        a => {
-          const aplicacaoDate = new Date(a.dataaplicacao).toISOString().split('T')[0];
-          return aplicacaoDate === today;
-        }
-      ).length;
+      const vacinacoesHoje = (aplicacoesHojeData.data || []).length;
 
       const lotesVencendo = mappedBatches.filter(batch => {
         const daysUntilExpiration = Math.floor(
