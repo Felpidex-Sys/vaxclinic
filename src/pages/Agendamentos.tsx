@@ -232,11 +232,14 @@ export const Agendamentos: React.FC = () => {
     }
 
     try {
+      // Data e hora atuais no formato ISO
+      const dataHoraAtual = new Date().toISOString();
+      
       // Criar registro de aplicação (trigger do banco atualiza status para REALIZADO automaticamente)
       const { error: aplicacaoError } = await supabase
         .from('aplicacao')
         .insert({
-          dataaplicacao: new Date().toISOString().split('T')[0],
+          dataaplicacao: dataHoraAtual,
           funcionario_idfuncionario: parseInt(selectedEmployee),
           cliente_cpf: confirmingAgendamento.Cliente_CPF.toString(),
           agendamento_idagendamento: confirmingAgendamento.idAgendamento,

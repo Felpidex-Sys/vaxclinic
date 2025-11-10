@@ -35,7 +35,6 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
     batchId: '',
     employeeId: '',
     doseNumber: 1,
-    applicationDate: new Date().toISOString().split('T')[0],
     nextDueDate: '',
     notes: '',
   });
@@ -67,6 +66,9 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
     }
 
     try {
+      // Data e hora atuais no formato ISO
+      const dataHoraAtual = new Date().toISOString();
+      
       // Primeiro, salvar a aplicação no banco
       const { error: aplicacaoError } = await supabase
         .from('aplicacao')
@@ -74,7 +76,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
           cliente_cpf: formData.clientId,
           funcionario_idfuncionario: parseInt(formData.employeeId),
           agendamento_idagendamento: null, // Aplicação sem agendamento prévio
-          dataaplicacao: formData.applicationDate,
+          dataaplicacao: dataHoraAtual,
           dose: formData.doseNumber,
           observacoes: formData.notes || null,
         });
@@ -86,7 +88,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
       const vaccination: Omit<VaccinationRecord, 'id' | 'createdAt'> = {
         ...formData,
         appliedBy: formData.employeeId,
-        applicationDate: new Date(formData.applicationDate).toISOString(),
+        applicationDate: dataHoraAtual,
         nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate).toISOString() : '',
       };
 
@@ -98,7 +100,6 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
         batchId: '',
         employeeId: '',
         doseNumber: 1,
-        applicationDate: new Date().toISOString().split('T')[0],
         nextDueDate: '',
         notes: '',
       });
@@ -208,17 +209,6 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
                 min="1"
                 value={formData.doseNumber}
                 onChange={(e) => setFormData({ ...formData, doseNumber: parseInt(e.target.value) })}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="applicationDate">Data de Aplicação *</Label>
-              <Input
-                id="applicationDate"
-                type="date"
-                value={formData.applicationDate}
-                onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
-                required
               />
             </div>
             
