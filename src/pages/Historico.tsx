@@ -94,7 +94,8 @@ export const Historico: React.FC = () => {
           observacoes,
           cliente_cpf,
           funcionario_idfuncionario,
-          agendamento_idagendamento
+          agendamento_idagendamento,
+          lote_numlote
         `)
         .order('dataaplicacao', { ascending: false });
 
@@ -117,37 +118,46 @@ export const Historico: React.FC = () => {
             .eq('idfuncionario', aplicacao.funcionario_idfuncionario)
             .single();
 
-          // Buscar informações da vacina através do agendamento
+          // Buscar informações da vacina e lote
           let vacinaInfo = { nome: 'N/A', fabricante: 'N/A', codigolote: 'N/A' };
           
-          if (aplicacao.agendamento_idagendamento) {
+          // Tentar buscar lote diretamente da aplicação primeiro
+          let loteNumero = aplicacao.lote_numlote;
+          
+          // Se não tiver lote direto, buscar através do agendamento
+          if (!loteNumero && aplicacao.agendamento_idagendamento) {
             const { data: agendamentoData } = await supabase
               .from('agendamento')
               .select('lote_numlote')
               .eq('idagendamento', aplicacao.agendamento_idagendamento)
               .single();
-
+            
             if (agendamentoData) {
-              const { data: loteData } = await supabase
-                .from('lote')
-                .select('codigolote, vacina_idvacina')
-                .eq('numlote', agendamentoData.lote_numlote)
+              loteNumero = agendamentoData.lote_numlote;
+            }
+          }
+          
+          // Buscar informações do lote e vacina
+          if (loteNumero) {
+            const { data: loteData } = await supabase
+              .from('lote')
+              .select('codigolote, vacina_idvacina')
+              .eq('numlote', loteNumero)
+              .single();
+
+            if (loteData) {
+              const { data: vacinaData } = await supabase
+                .from('vacina')
+                .select('nome, fabricante')
+                .eq('idvacina', loteData.vacina_idvacina)
                 .single();
 
-              if (loteData) {
-                const { data: vacinaData } = await supabase
-                  .from('vacina')
-                  .select('nome, fabricante')
-                  .eq('idvacina', loteData.vacina_idvacina)
-                  .single();
-
-                if (vacinaData) {
-                  vacinaInfo = {
-                    nome: vacinaData.nome,
-                    fabricante: vacinaData.fabricante || 'N/A',
-                    codigolote: loteData.codigolote,
-                  };
-                }
+              if (vacinaData) {
+                vacinaInfo = {
+                  nome: vacinaData.nome,
+                  fabricante: vacinaData.fabricante || 'N/A',
+                  codigolote: loteData.codigolote,
+                };
               }
             }
           }

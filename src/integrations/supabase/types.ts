@@ -95,6 +95,7 @@ export type Database = {
           dose: number | null
           funcionario_idfuncionario: number
           idaplicacao: number
+          lote_numlote: number | null
           observacoes: string | null
           reacoesadversas: string | null
         }
@@ -105,6 +106,7 @@ export type Database = {
           dose?: number | null
           funcionario_idfuncionario: number
           idaplicacao?: number
+          lote_numlote?: number | null
           observacoes?: string | null
           reacoesadversas?: string | null
         }
@@ -115,6 +117,7 @@ export type Database = {
           dose?: number | null
           funcionario_idfuncionario?: number
           idaplicacao?: number
+          lote_numlote?: number | null
           observacoes?: string | null
           reacoesadversas?: string | null
         }
@@ -139,6 +142,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "funcionario"
             referencedColumns: ["idfuncionario"]
+          },
+          {
+            foreignKeyName: "aplicacao_lote_numlote_fkey"
+            columns: ["lote_numlote"]
+            isOneToOne: false
+            referencedRelation: "lote"
+            referencedColumns: ["numlote"]
           },
         ]
       }

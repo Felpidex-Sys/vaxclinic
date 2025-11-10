@@ -76,6 +76,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
           cliente_cpf: formData.clientId,
           funcionario_idfuncionario: parseInt(formData.employeeId),
           agendamento_idagendamento: null, // Aplicação sem agendamento prévio
+          lote_numlote: parseInt(formData.batchId), // Salvar referência ao lote
           dataaplicacao: dataHoraAtual,
           dose: formData.doseNumber,
           observacoes: formData.notes || null,
