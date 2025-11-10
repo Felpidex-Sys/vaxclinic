@@ -8,6 +8,7 @@ import { HistoricoFilters } from '@/components/HistoricoFilters';
 import { HistoricoDetailsDialog } from '@/components/HistoricoDetailsDialog';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { AlertCircle, FileText, Calendar, Activity } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 
 interface HistoricoAplicacao {
   idaplicacao: number;
@@ -46,8 +47,7 @@ export const Historico: React.FC = () => {
   const [stats, setStats] = useState<Stats>({ total: 0, mesAtual: 0, vacinaMaisAplicada: '-' });
 
   // Filtros
-  const [searchClienteTerm, setSearchClienteTerm] = useState('');
-  const [searchFuncionarioTerm, setSearchFuncionarioTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [vacinaFilter, setVacinaFilter] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
@@ -64,7 +64,7 @@ export const Historico: React.FC = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [historico, searchClienteTerm, searchFuncionarioTerm, vacinaFilter, dataInicio, dataFim, doseFilter]);
+  }, [historico, searchTerm, vacinaFilter, dataInicio, dataFim, doseFilter]);
 
   const fetchVacinas = async () => {
     try {
@@ -207,16 +207,14 @@ export const Historico: React.FC = () => {
   const applyFilters = () => {
     let filtered = [...historico];
 
-    if (searchClienteTerm) {
+    // Busca geral (nome cliente, CPF, funcionário, vacina)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter((item) =>
-        item.cliente_nome.toLowerCase().includes(searchClienteTerm.toLowerCase()) ||
-        item.cliente_cpf.includes(searchClienteTerm)
-      );
-    }
-
-    if (searchFuncionarioTerm) {
-      filtered = filtered.filter((item) =>
-        item.funcionario_nome.toLowerCase().includes(searchFuncionarioTerm.toLowerCase())
+        item.cliente_nome.toLowerCase().includes(term) ||
+        item.cliente_cpf.includes(term) ||
+        item.funcionario_nome.toLowerCase().includes(term) ||
+        item.vacina_nome.toLowerCase().includes(term)
       );
     }
 
@@ -225,11 +223,11 @@ export const Historico: React.FC = () => {
     }
 
     if (dataInicio) {
-      filtered = filtered.filter((item) => new Date(item.dataaplicacao) >= new Date(dataInicio));
+      filtered = filtered.filter((item) => item.dataaplicacao >= dataInicio);
     }
 
     if (dataFim) {
-      filtered = filtered.filter((item) => new Date(item.dataaplicacao) <= new Date(dataFim));
+      filtered = filtered.filter((item) => item.dataaplicacao <= dataFim);
     }
 
     if (doseFilter && doseFilter !== 'all') {
@@ -241,8 +239,7 @@ export const Historico: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setSearchClienteTerm('');
-    setSearchFuncionarioTerm('');
+    setSearchTerm('');
     setVacinaFilter('');
     setDataInicio('');
     setDataFim('');
@@ -261,8 +258,7 @@ export const Historico: React.FC = () => {
   const totalPages = Math.ceil(filteredHistorico.length / recordsPerPage);
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
+    return format(parseISO(dateString), 'dd/MM/yyyy');
   };
 
   const getDoseBadgeColor = (dose: number) => {
@@ -321,10 +317,8 @@ export const Historico: React.FC = () => {
 
       {/* Filtros */}
       <HistoricoFilters
-        searchClienteTerm={searchClienteTerm}
-        setSearchClienteTerm={setSearchClienteTerm}
-        searchFuncionarioTerm={searchFuncionarioTerm}
-        setSearchFuncionarioTerm={setSearchFuncionarioTerm}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
         vacinaFilter={vacinaFilter}
         setVacinaFilter={setVacinaFilter}
         dataInicio={dataInicio}

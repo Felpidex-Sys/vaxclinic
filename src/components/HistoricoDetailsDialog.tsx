@@ -9,6 +9,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { User, Syringe, Calendar, FileText, AlertCircle } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface HistoricoAplicacao {
   idaplicacao: number;
@@ -37,14 +39,7 @@ export const HistoricoDetailsDialog: React.FC<HistoricoDetailsDialogProps> = ({
   record,
 }) => {
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return format(parseISO(dateString), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
   const getDoseBadgeColor = (dose: number) => {

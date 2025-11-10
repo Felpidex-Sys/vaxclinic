@@ -16,6 +16,7 @@ import { DashboardStats, Client, User, Vaccine, VaccineBatch, VaccinationRecord,
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { format, parseISO } from 'date-fns';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -350,7 +351,7 @@ export const Dashboard: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">
-                          {new Date(vaccination.applicationDate).toLocaleDateString('pt-BR')}
+                          {format(parseISO(vaccination.applicationDate), 'dd/MM/yyyy')}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           por {appliedBy?.name}

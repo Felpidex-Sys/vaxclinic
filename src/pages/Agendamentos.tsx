@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AgendamentoForm } from '@/components/forms/AgendamentoForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocation } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
 
 export const Agendamentos: React.FC = () => {
   const { toast } = useToast();
@@ -432,11 +433,8 @@ export const Agendamentos: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-muted-foreground" />
                           <span>
-                            {new Date(agendamento.dataAgendada).toLocaleDateString('pt-BR')} às{' '}
-                            {new Date(agendamento.dataAgendada).toLocaleTimeString('pt-BR', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
+                            {format(parseISO(agendamento.dataAgendada), 'dd/MM/yyyy')} às{' '}
+                            {format(parseISO(agendamento.dataAgendada), 'HH:mm')}
                           </span>
                         </div>
                         

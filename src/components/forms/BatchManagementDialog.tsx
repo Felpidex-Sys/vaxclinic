@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import { VaccineBatch } from '@/types';
+import { format, parseISO } from 'date-fns';
 
 interface BatchManagementDialogProps {
   open: boolean;
@@ -89,7 +90,7 @@ export const BatchManagementDialog: React.FC<BatchManagementDialogProps> = ({
                         
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <p>
-                            Validade: {new Date(batch.expirationDate).toLocaleDateString('pt-BR')}
+                            Validade: {format(parseISO(batch.expirationDate), 'dd/MM/yyyy')}
                           </p>
                           <p>
                             Disponível: {batch.remainingQuantity} / {batch.quantity} doses
