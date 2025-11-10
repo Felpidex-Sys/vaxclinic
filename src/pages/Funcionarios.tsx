@@ -230,7 +230,7 @@ export const Funcionarios: React.FC = () => {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="card-shadow">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -250,18 +250,6 @@ export const Funcionarios: React.FC = () => {
               <div>
                 <p className="text-2xl font-bold text-green-600">{employees.filter(e => e.active).length}</p>
                 <p className="text-sm text-muted-foreground">Funcionários Ativos</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="card-shadow">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-blue-600" />
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{employees.filter(e => e.role === 'admin').length}</p>
-                <p className="text-sm text-muted-foreground">Administradores</p>
               </div>
             </div>
           </CardContent>

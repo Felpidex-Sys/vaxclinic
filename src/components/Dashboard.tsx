@@ -109,7 +109,10 @@ export const Dashboard: React.FC = () => {
       // Calcular estatísticas
       const today = new Date().toISOString().split('T')[0];
       const vacinacoesHoje = (aplicacoesData.data || []).filter(
-        a => a.dataaplicacao === today
+        a => {
+          const aplicacaoDate = new Date(a.dataaplicacao).toISOString().split('T')[0];
+          return aplicacaoDate === today;
+        }
       ).length;
 
       const lotesVencendo = mappedBatches.filter(batch => {
