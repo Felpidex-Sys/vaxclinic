@@ -13,7 +13,7 @@ import {
   Package,
   AlertTriangle,
   Calendar,
-  TrendingUp
+  CalendarX
 } from 'lucide-react';
 import { Vaccine, VaccineBatch, Client, User, VaccinationRecord } from '@/types';
 import { useNavigate } from 'react-router-dom';
@@ -502,10 +502,10 @@ export const Vacinas: React.FC = () => {
         <Card className="card-shadow">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <CalendarX className="w-5 h-5 text-blue-600" />
               <div>
                 <p className="text-2xl font-bold text-blue-600">{availableDoses}</p>
-                <p className="text-sm text-muted-foreground">Disponíveis</p>
+                <p className="text-sm text-muted-foreground">Não Agendadas</p>
               </div>
             </div>
           </CardContent>

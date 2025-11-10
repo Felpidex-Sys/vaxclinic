@@ -272,9 +272,7 @@ export const Historico: React.FC = () => {
   };
 
   const getDoseBadgeColor = (dose: number) => {
-    if (dose === 1) return 'bg-blue-100 text-blue-800';
-    if (dose === 2) return 'bg-green-100 text-green-800';
-    return 'bg-purple-100 text-purple-800';
+    return 'bg-blue-100 text-blue-800 min-w-[70px] justify-center';
   };
 
   return (
