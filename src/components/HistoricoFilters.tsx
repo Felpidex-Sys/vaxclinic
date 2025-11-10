@@ -47,10 +47,10 @@ export const HistoricoFilters: React.FC<HistoricoFiltersProps> = ({
   const hasActiveFilters = 
     searchClienteTerm || 
     searchFuncionarioTerm || 
-    vacinaFilter || 
+    (vacinaFilter && vacinaFilter !== 'all') || 
     dataInicio || 
     dataFim || 
-    doseFilter;
+    (doseFilter && doseFilter !== 'all');
 
   return (
     <Card>
@@ -95,7 +95,7 @@ export const HistoricoFilters: React.FC<HistoricoFiltersProps> = ({
                 <SelectValue placeholder="Todas as vacinas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as vacinas</SelectItem>
+                <SelectItem value="all">Todas as vacinas</SelectItem>
                 {vacinas.map((vacina) => (
                   <SelectItem key={vacina.idvacina} value={vacina.nome}>
                     {vacina.nome}
@@ -135,7 +135,7 @@ export const HistoricoFilters: React.FC<HistoricoFiltersProps> = ({
                 <SelectValue placeholder="Todas as doses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as doses</SelectItem>
+                <SelectItem value="all">Todas as doses</SelectItem>
                 <SelectItem value="1">1ª dose</SelectItem>
                 <SelectItem value="2">2ª dose</SelectItem>
                 <SelectItem value="3">3ª dose</SelectItem>

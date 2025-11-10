@@ -220,7 +220,7 @@ export const Historico: React.FC = () => {
       );
     }
 
-    if (vacinaFilter) {
+    if (vacinaFilter && vacinaFilter !== 'all') {
       filtered = filtered.filter((item) => item.vacina_nome === vacinaFilter);
     }
 
@@ -232,7 +232,7 @@ export const Historico: React.FC = () => {
       filtered = filtered.filter((item) => new Date(item.dataaplicacao) <= new Date(dataFim));
     }
 
-    if (doseFilter) {
+    if (doseFilter && doseFilter !== 'all') {
       filtered = filtered.filter((item) => item.dose === parseInt(doseFilter));
     }
 
