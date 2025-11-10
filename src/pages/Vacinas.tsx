@@ -231,14 +231,6 @@ export const Vacinas: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
     setVaccinations([...vaccinations, newVaccination]);
-
-    // Update batch stock
-    const updatedBatches = batches.map(batch =>
-      batch.id === vaccinationData.batchId
-        ? { ...batch, remainingQuantity: batch.remainingQuantity - 1 }
-        : batch
-    );
-    setBatches(updatedBatches);
   };
 
   const handleSaveVaccine = async (data: any) => {
