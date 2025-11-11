@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Agendamento, Client, Lote, User as UserType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
+import { toBrasiliaISOString } from '@/lib/utils';
 
 interface AgendamentoFormProps {
   open: boolean;
@@ -71,7 +72,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
       Cliente_CPF: formData.Cliente_CPF,
       Funcionario_idFuncionario: null,
       Lote_numLote: formData.Lote_numLote,
-      dataAgendada: new Date(formData.dataAgendada).toISOString(),
+      dataAgendada: toBrasiliaISOString(formData.dataAgendada),
       status: 'AGENDADO',
       observacoes: formData.observacoes,
     };

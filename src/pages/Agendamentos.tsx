@@ -22,7 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AgendamentoForm } from '@/components/forms/AgendamentoForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocation } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { formatBrasiliaDate, toBrasiliaISOString } from '@/lib/utils';
 
 export const Agendamentos: React.FC = () => {
   const { toast } = useToast();
@@ -232,8 +232,8 @@ export const Agendamentos: React.FC = () => {
     }
 
     try {
-      // Data e hora atuais no formato ISO
-      const dataHoraAtual = new Date().toISOString();
+      // Data e hora atuais no formato ISO (horário de Brasília)
+      const dataHoraAtual = toBrasiliaISOString();
       
       // Criar registro de aplicação (trigger do banco atualiza status para REALIZADO automaticamente)
       const { error: aplicacaoError } = await supabase
@@ -436,8 +436,12 @@ export const Agendamentos: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-muted-foreground" />
                           <span>
-                            {format(parseISO(agendamento.dataAgendada), 'dd/MM/yyyy')} às{' '}
-                            {format(parseISO(agendamento.dataAgendada), 'HH:mm')}
+                            {formatBrasiliaDate(agendamento.dataAgendada)} às{' '}
+                            {new Date(agendamento.dataAgendada).toLocaleTimeString('pt-BR', { 
+                              timeZone: 'America/Sao_Paulo',
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
                           </span>
                         </div>
                         

@@ -8,7 +8,7 @@ import { HistoricoFilters } from '@/components/HistoricoFilters';
 import { HistoricoDetailsDialog } from '@/components/HistoricoDetailsDialog';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { AlertCircle, FileText, Calendar, Activity } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { formatBrasiliaDate } from '@/lib/utils';
 
 interface HistoricoAplicacao {
   idaplicacao: number;
@@ -268,7 +268,7 @@ export const Historico: React.FC = () => {
   const totalPages = Math.ceil(filteredHistorico.length / recordsPerPage);
 
   const formatDate = (dateString: string) => {
-    return format(parseISO(dateString), 'dd/MM/yyyy');
+    return formatBrasiliaDate(dateString);
   };
 
   const getDoseBadgeColor = (dose: number) => {

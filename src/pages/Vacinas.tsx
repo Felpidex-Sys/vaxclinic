@@ -23,7 +23,7 @@ import { BatchForm } from '@/components/forms/BatchForm';
 import { BatchManagementDialog } from '@/components/forms/BatchManagementDialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { format, parseISO } from 'date-fns';
+import { toBrasiliaISOString, formatBrasiliaDate } from '@/lib/utils';
 
 export const Vacinas: React.FC = () => {
   const navigate = useNavigate();
@@ -228,7 +228,7 @@ export const Vacinas: React.FC = () => {
     const newVaccination: VaccinationRecord = {
       ...vaccinationData,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
+      createdAt: toBrasiliaISOString(),
     };
     setVaccinations([...vaccinations, newVaccination]);
   };
@@ -684,7 +684,7 @@ export const Vacinas: React.FC = () => {
                           {batch.remainingQuantity}/{batch.quantity} doses {isExpired ? 'vencidas' : ''}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Vence: {format(parseISO(batch.expirationDate), 'dd/MM/yyyy')}
+                          Vence: {formatBrasiliaDate(batch.expirationDate)}
                         </p>
                         <div className="w-20 bg-gray-200 rounded-full h-2 mt-1">
                           <div 
@@ -744,7 +744,7 @@ export const Vacinas: React.FC = () => {
                             {daysUntilExpiry} dias
                           </Badge>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Vence: {format(parseISO(batch.expirationDate), 'dd/MM/yyyy')}
+                            Vence: {formatBrasiliaDate(batch.expirationDate)}
                           </p>
                         </div>
                       </div>

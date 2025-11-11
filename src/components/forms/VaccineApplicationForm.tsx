@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Client, Vaccine, VaccineBatch, VaccinationRecord, User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { toBrasiliaISOString, getBrasiliaDate } from '@/lib/utils';
 
 interface VaccineApplicationFormProps {
   open: boolean;
@@ -45,9 +46,9 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
     if (batch.vaccineId !== formData.vaccineId) return false;
     if (batch.remainingQuantity <= 0) return false;
     
-    // Verificar se o lote está vencido
+    // Verificar se o lote está vencido (usando horário de Brasília)
     const expirationDate = new Date(batch.expirationDate);
-    const today = new Date();
+    const today = getBrasiliaDate();
     today.setHours(0, 0, 0, 0);
     
     return expirationDate >= today;
@@ -66,8 +67,8 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
     }
 
     try {
-      // Data e hora atuais no formato ISO
-      const dataHoraAtual = new Date().toISOString();
+      // Data e hora atuais no formato ISO (horário de Brasília)
+      const dataHoraAtual = toBrasiliaISOString();
       
       // Primeiro, salvar a aplicação no banco
       const { error: aplicacaoError } = await supabase
@@ -90,7 +91,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
         ...formData,
         appliedBy: formData.employeeId,
         applicationDate: dataHoraAtual,
-        nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate).toISOString() : '',
+        nextDueDate: formData.nextDueDate ? toBrasiliaISOString(formData.nextDueDate) : '',
       };
 
       onSave(vaccination);
