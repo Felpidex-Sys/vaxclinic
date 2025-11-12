@@ -82,7 +82,7 @@ export const Agendamentos: React.FC = () => {
         address: '',
         allergies: c.alergias || '',
         observations: c.observacoes || '',
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
       }));
 
       const mappedLotes: Lote[] = (lotesData.data || []).map(l => ({
@@ -102,7 +102,7 @@ export const Agendamentos: React.FC = () => {
         role: 'funcionario' as const,
         permissions: ['all'],
         active: e.status === 'ATIVO',
-        createdAt: e.dataadmissao || new Date().toISOString(),
+        createdAt: e.dataadmissao || toBrasiliaISOString(),
       }));
 
       setAgendamentos(mappedAgendamentos);

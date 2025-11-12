@@ -17,6 +17,7 @@ import {
 import { Client, User, Vaccine, VaccinationRecord, VaccineBatch } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toBrasiliaISOString } from '@/lib/utils';
 
 export const Relatorios: React.FC = () => {
   const { toast } = useToast();
@@ -60,7 +61,7 @@ export const Relatorios: React.FC = () => {
         address: '',
         allergies: c.alergias || '',
         observations: c.observacoes || '',
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
       }));
 
       const mappedEmployees: User[] = (employeesData.data || []).map(e => ({
@@ -71,7 +72,7 @@ export const Relatorios: React.FC = () => {
         role: 'funcionario' as const,
         permissions: ['all'],
         active: e.status === 'ATIVO',
-        createdAt: e.dataadmissao || new Date().toISOString(),
+        createdAt: e.dataadmissao || toBrasiliaISOString(),
       }));
 
       const mappedVaccines: Vaccine[] = (vaccinesData.data || []).map(v => ({
@@ -81,7 +82,7 @@ export const Relatorios: React.FC = () => {
         description: v.descricao || '',
         targetDisease: v.categoria || '',
         dosesRequired: v.quantidadedoses || 1,
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
       }));
 
       const mappedVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map(a => ({
@@ -105,7 +106,7 @@ export const Relatorios: React.FC = () => {
         remainingQuantity: b.quantidadedisponivel,
         manufacturingDate: new Date().toISOString(),
         expirationDate: b.datavalidade,
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
       }));
 
       setClients(mappedClients);

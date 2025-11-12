@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { ClientForm } from '@/components/forms/ClientForm';
 import { useToast } from '@/hooks/use-toast';
 import { displayCPF, displayTelefone } from '@/lib/validations';
+import { toBrasiliaISOString } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { InfoDialog } from '@/components/ui/info-dialog';
 
@@ -58,7 +59,7 @@ export const Clientes: React.FC = () => {
         address: '',
         allergies: cliente.alergias || '',
         observations: cliente.observacoes || '',
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
       }));
 
       setClients(mappedClients);

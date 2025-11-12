@@ -16,7 +16,7 @@ import { DashboardStats, Client, User, Vaccine, VaccineBatch, VaccinationRecord,
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { getBrasiliaDate, toBrasiliaISOString, formatBrasiliaDate, formatBrasiliaDateTime } from '@/lib/utils';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export const Dashboard: React.FC = () => {
     totalVaccines: 0,
     vaccinationsToday: 0,
     expiringBatches: [],
-    recentVaccinations: []
+    upcomingAppointments: []
   });
 
   useEffect(() => {
@@ -42,17 +42,16 @@ export const Dashboard: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      // Get today's date in YYYY-MM-DD format
-      const today = new Date().toISOString().split('T')[0];
+      // Get today's date in Brasília timezone
+      const today = getBrasiliaDate().toISOString().split('T')[0];
       
-      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesData, aplicacoesHojeData, agendamentosData] = await Promise.all([
+      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesHojeData, agendamentosProximosData] = await Promise.all([
         supabase.from('cliente').select('*'),
         supabase.from('funcionario').select('*'),
         supabase.from('vacina').select('*'),
         supabase.from('lote').select('*'),
-        supabase.from('aplicacao').select('*').order('dataaplicacao', { ascending: false }).limit(5),
         supabase.from('aplicacao').select('idaplicacao').gte('dataaplicacao', `${today}T00:00:00`).lte('dataaplicacao', `${today}T23:59:59`),
-        supabase.from('agendamento').select('*').eq('status', 'REALIZADO').order('dataagendada', { ascending: false }).limit(5),
+        supabase.from('agendamento').select('*').eq('status', 'AGENDADO').gte('dataagendada', toBrasiliaISOString()).order('dataagendada', { ascending: true }).limit(5),
       ]);
 
       if (clientsData.error) throw clientsData.error;
@@ -70,7 +69,7 @@ export const Dashboard: React.FC = () => {
         address: '',
         allergies: c.alergias || '',
         observations: c.observacoes || '',
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
       }));
 
       const mappedEmployees: User[] = (employeesData.data || []).map(e => ({
@@ -81,7 +80,7 @@ export const Dashboard: React.FC = () => {
         role: 'funcionario' as const,
         permissions: ['all'],
         active: e.status === 'ATIVO',
-        createdAt: e.dataadmissao || new Date().toISOString(),
+        createdAt: e.dataadmissao || toBrasiliaISOString(),
       }));
 
       const mappedVaccines: Vaccine[] = (vaccinesData.data || []).map(v => ({
@@ -91,7 +90,7 @@ export const Dashboard: React.FC = () => {
         description: v.descricao || '',
         targetDisease: v.categoria || '',
         dosesRequired: v.quantidadedoses || 1,
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
       }));
 
       const mappedBatches: VaccineBatch[] = (batchesData.data || []).map(b => ({
@@ -100,9 +99,9 @@ export const Dashboard: React.FC = () => {
         batchNumber: b.codigolote,
         quantity: b.quantidadeinicial,
         remainingQuantity: b.quantidadedisponivel,
-        manufacturingDate: new Date().toISOString(),
+        manufacturingDate: toBrasiliaISOString(),
         expirationDate: b.datavalidade,
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
       }));
 
       setClients(mappedClients);
@@ -115,42 +114,61 @@ export const Dashboard: React.FC = () => {
 
       const lotesVencendo = mappedBatches.filter(batch => {
         const daysUntilExpiration = Math.floor(
-          (new Date(batch.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+          (new Date(batch.expirationDate).getTime() - getBrasiliaDate().getTime()) / (1000 * 60 * 60 * 24)
         );
         return daysUntilExpiration > 0 && daysUntilExpiration <= 30;
       });
 
-      const mappedRecentVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map(a => ({
-        id: a.idaplicacao.toString(),
-        clientId: a.cliente_cpf,
-        vaccineId: '', 
-        batchId: '', 
-        appliedBy: a.funcionario_idfuncionario.toString(),
-        applicationDate: a.dataaplicacao,
-        doseNumber: a.dose || 1,
-        observations: a.observacoes || '',
-        adverseReactions: a.reacoesadversas || '',
-        createdAt: a.dataaplicacao,
-      }));
+      // Buscar dados adicionais para agendamentos próximos
+      const upcomingAppointments = await Promise.all(
+        (agendamentosProximosData.data || []).map(async (ag) => {
+          const [clientData, loteData] = await Promise.all([
+            supabase.from('cliente').select('nomecompleto').eq('cpf', ag.cliente_cpf).single(),
+            supabase.from('lote').select('vacina_idvacina').eq('numlote', ag.lote_numlote).single(),
+          ]);
 
-      // Adicionar agendamentos finalizados como vacinações recentes
-      const agendamentosFinalizados: VaccinationRecord[] = (agendamentosData.data || []).map(ag => ({
-        id: `ag-${ag.idagendamento}`,
-        clientId: ag.cliente_cpf,
-        vaccineId: '',
-        batchId: ag.lote_numlote?.toString() || '',
-        appliedBy: ag.funcionario_idfuncionario?.toString() || '',
-        applicationDate: ag.dataagendada.split('T')[0],
-        doseNumber: 1,
-        observations: ag.observacoes || '',
-        adverseReactions: '',
-        createdAt: ag.dataagendada,
-      }));
+          let vacinaNome = 'Vacina não encontrada';
+          if (loteData.data?.vacina_idvacina) {
+            const vacinaData = await supabase
+              .from('vacina')
+              .select('nome')
+              .eq('idvacina', loteData.data.vacina_idvacina)
+              .single();
+            vacinaNome = vacinaData.data?.nome || vacinaNome;
+          }
 
-      // Combinar e ordenar por data
-      const todasVacinacoes = [...mappedRecentVaccinations, ...agendamentosFinalizados]
-        .sort((a, b) => new Date(b.applicationDate).getTime() - new Date(a.applicationDate).getTime())
-        .slice(0, 5);
+          const agora = getBrasiliaDate();
+          const agendamento = new Date(ag.dataagendada);
+          const diffMs = agendamento.getTime() - agora.getTime();
+          
+          const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          const horas = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          
+          let tempoRestante = '';
+          let urgente = false;
+          
+          if (dias > 0) {
+            tempoRestante = `${dias} dia${dias > 1 ? 's' : ''}`;
+          } else if (horas > 0) {
+            tempoRestante = `${horas}h${minutos > 0 ? `${minutos}min` : ''}`;
+            urgente = horas < 24;
+          } else {
+            tempoRestante = `${minutos}min`;
+            urgente = true;
+          }
+
+          return {
+            id: ag.idagendamento.toString(),
+            clienteNome: clientData.data?.nomecompleto || 'Cliente não encontrado',
+            clienteCpf: ag.cliente_cpf,
+            vacinaNome,
+            dataAgendada: ag.dataagendada,
+            tempoRestante,
+            urgente,
+          };
+        })
+      );
 
       setStats({
         totalClients: mappedClients.length,
@@ -158,7 +176,7 @@ export const Dashboard: React.FC = () => {
         totalVaccines: mappedVaccines.length,
         vaccinationsToday: vacinacoesHoje,
         expiringBatches: lotesVencendo,
-        recentVaccinations: todasVacinacoes,
+        upcomingAppointments,
       });
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -292,7 +310,7 @@ export const Dashboard: React.FC = () => {
                 {stats.expiringBatches.map((batch) => {
                   const vaccine = vaccines.find(v => v.id === batch.vaccineId);
                   const daysUntilExpiry = Math.ceil(
-                    (new Date(batch.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                    (new Date(batch.expirationDate).getTime() - getBrasiliaDate().getTime()) / (1000 * 60 * 60 * 24)
                   );
                   
                   return (
@@ -319,44 +337,54 @@ export const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Vaccinations */}
+        {/* Upcoming Appointments */}
         <Card className="card-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-medical-blue" />
-              Vacinações Recentes
+              Agendamentos Próximos
             </CardTitle>
             <CardDescription>
-              Últimas 5 vacinas aplicadas
+              Próximos 5 agendamentos
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {stats.recentVaccinations.length === 0 ? (
+            {stats.upcomingAppointments.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Nenhuma vacinação registrada
+                Nenhum agendamento próximo
               </p>
             ) : (
               <div className="space-y-3">
-                {stats.recentVaccinations.map((vaccination) => {
-                  const client = clients.find(c => c.id === vaccination.clientId);
-                  const vaccine = vaccines.find(v => v.id === vaccination.vaccineId);
-                  const appliedBy = employees.find(e => e.id === vaccination.appliedBy);
+                {stats.upcomingAppointments.map((appointment) => {
+                  const getBadgeColor = () => {
+                    if (appointment.tempoRestante.includes('min') || appointment.tempoRestante.includes('h')) {
+                      return appointment.tempoRestante.includes('min') && !appointment.tempoRestante.includes('h')
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-orange-100 text-orange-800';
+                    }
+                    return 'bg-blue-100 text-blue-800';
+                  };
                   
                   return (
-                    <div key={vaccination.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div key={appointment.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                       <div>
-                        <p className="font-medium">{client?.name}</p>
+                        <p className="font-medium">{appointment.clienteNome}</p>
                         <p className="text-sm text-muted-foreground">
-                          {vaccine?.name} - Dose {vaccination.doseNumber}
+                          {appointment.vacinaNome}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">
-                          {format(parseISO(vaccination.applicationDate), 'dd/MM/yyyy')}
+                          {formatBrasiliaDate(appointment.dataAgendada)} às{' '}
+                          {new Date(appointment.dataAgendada).toLocaleTimeString('pt-BR', {
+                            timeZone: 'America/Sao_Paulo',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          por {appliedBy?.name}
-                        </p>
+                        <Badge className={getBadgeColor()}>
+                          {appointment.tempoRestante}
+                        </Badge>
                       </div>
                     </div>
                   );

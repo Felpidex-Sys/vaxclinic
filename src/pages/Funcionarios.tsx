@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { EmployeeForm } from '@/components/forms/EmployeeForm';
 import { useToast } from '@/hooks/use-toast';
 import { displayCPF } from '@/lib/validations';
+import { toBrasiliaISOString } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
 export const Funcionarios: React.FC = () => {
@@ -60,7 +61,7 @@ export const Funcionarios: React.FC = () => {
         role: (func.cargo || 'funcionario') as 'admin' | 'funcionario' | 'vacinador',
         permissions: [],
         active: func.status === 'ATIVO',
-        createdAt: new Date().toISOString(),
+        createdAt: toBrasiliaISOString(),
         coren: func.coren,
       }));
 

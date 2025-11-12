@@ -129,13 +129,23 @@ export interface VaccinationRecord {
   createdAt: string;
 }
 
+export interface AgendamentoProximo {
+  id: string;
+  clienteNome: string;
+  clienteCpf: string;
+  vacinaNome: string;
+  dataAgendada: string;
+  tempoRestante: string;
+  urgente: boolean;
+}
+
 export interface DashboardStats {
   totalClients: number;
   totalEmployees: number;
   totalVaccines: number;
   vaccinationsToday: number;
   expiringBatches: VaccineBatch[];
-  recentVaccinations: VaccinationRecord[];
+  upcomingAppointments: AgendamentoProximo[];
 }
 
 // Dashboard Stats interface
