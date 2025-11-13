@@ -35,7 +35,7 @@ export const Agendamentos: React.FC = () => {
   const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('AGENDADO');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAgendamento, setEditingAgendamento] = useState<Agendamento | null>(null);
   const [confirmingAgendamento, setConfirmingAgendamento] = useState<Agendamento | null>(null);
@@ -46,6 +46,19 @@ export const Agendamentos: React.FC = () => {
     // Se vier de Clientes com CPF, abrir o form
     if (location.state?.clientCPF) {
       setIsFormOpen(true);
+    }
+    // Se vier do Dashboard com agendamento específico, fazer scroll/highlight
+    if (location.state?.selectedAgendamento) {
+      setTimeout(() => {
+        const element = document.getElementById(`agendamento-${location.state.selectedAgendamento}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('ring-2', 'ring-primary');
+          setTimeout(() => {
+            element.classList.remove('ring-2', 'ring-primary');
+          }, 2000);
+        }
+      }, 500);
     }
   }, [location.state]);
 
@@ -433,7 +446,7 @@ export const Agendamentos: React.FC = () => {
             const funcionario = employees.find(e => parseInt(e.id) === agendamento.Funcionario_idFuncionario);
             
             return (
-              <Card key={agendamento.idAgendamento} className="card-shadow">
+              <Card key={agendamento.idAgendamento} id={`agendamento-${agendamento.idAgendamento}`} className="card-shadow transition-all">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

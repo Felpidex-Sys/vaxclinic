@@ -16,7 +16,7 @@ import {
   CalendarX
 } from 'lucide-react';
 import { Vaccine, VaccineBatch, Client, User, VaccinationRecord } from '@/types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { VaccineApplicationForm } from '@/components/forms/VaccineApplicationForm';
 import { VaccineForm } from '@/components/forms/VaccineForm';
 import { BatchForm } from '@/components/forms/BatchForm';
@@ -27,6 +27,7 @@ import { toBrasiliaISOString, formatBrasiliaDate } from '@/lib/utils';
 
 export const Vacinas: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [batches, setBatches] = useState<VaccineBatch[]>([]);
@@ -46,6 +47,18 @@ export const Vacinas: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    
+    // Se vier do Dashboard com lote específico, abrir o dialog de gerenciamento
+    if (location.state?.selectedLote) {
+      const lote = batches.find(b => b.batchNumber === location.state.selectedLote);
+      if (lote) {
+        const vacina = vaccines.find(v => v.id === lote.vaccineId);
+        if (vacina) {
+          setSelectedVaccine(vacina);
+          setShowBatchManagement(true);
+        }
+      }
+    }
     
     // Configurar listeners de realtime para atualização automática
     const loteChannel = supabase
