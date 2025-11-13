@@ -448,7 +448,7 @@ export const Vacinas: React.FC = () => {
             }}
           >
             <Package className="w-4 h-4 mr-2" />
-            Adicionar Lote
+            Novo Lote
           </Button>
           <Button 
             className="medical-gradient text-white"
