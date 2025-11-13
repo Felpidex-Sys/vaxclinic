@@ -133,6 +133,8 @@ export const Relatorios: React.FC = () => {
         nextDueDate: '',
         observations: a.observacoes || '',
         createdAt: a.dataaplicacao,
+        precovenda: a.precovenda || 0,
+        precocompra: a.precocompra || 0,
       }));
 
       const mappedBatches: VaccineBatch[] = (batchesData.data || []).map(b => ({
@@ -563,10 +565,14 @@ export const Relatorios: React.FC = () => {
         perdaVencimento = totalPerdido * (lote.purchasePrice || 0);
       }
       
-      // Calcular perdas/lucros por vendas
-      aplicacoesDoLote.forEach(() => {
-        if (lote.salePrice && lote.purchasePrice) {
-          const margem = lote.salePrice - lote.purchasePrice;
+      // Calcular perdas/lucros por vendas usando preços históricos da aplicação
+      aplicacoesDoLote.forEach((aplicacao: any) => {
+        // Usar preços salvos na aplicação (históricos) ou fallback para preços atuais do lote
+        const precoVenda = aplicacao.precovenda || lote.salePrice || 0;
+        const precoCompra = aplicacao.precocompra || lote.purchasePrice || 0;
+        
+        if (precoVenda && precoCompra) {
+          const margem = precoVenda - precoCompra;
           if (margem < 0) {
             perdaMargem += Math.abs(margem);
           } else {

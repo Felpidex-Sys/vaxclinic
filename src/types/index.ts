@@ -68,6 +68,8 @@ export interface Aplicacao {
   Funcionario_idFuncionario: number;
   Cliente_CPF: number;
   Agendamento_idAgendamento: number;
+  precocompra: number;
+  precovenda: number;
 }
 
 // Legacy interfaces for backward compatibility
@@ -129,6 +131,8 @@ export interface VaccinationRecord {
   nextDueDate?: string;
   observations?: string;
   createdAt: string;
+  precovenda?: number;
+  precocompra?: number;
 }
 
 export interface AgendamentoProximo {

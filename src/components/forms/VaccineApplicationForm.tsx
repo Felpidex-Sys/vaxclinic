@@ -119,7 +119,16 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
       // Data e hora atuais no formato ISO (horário de Brasília)
       const dataHoraAtual = toBrasiliaISOString();
       
-      // Primeiro, salvar a aplicação no banco
+      // Buscar os preços atuais do lote selecionado
+      const { data: loteData, error: loteError } = await supabase
+        .from('lote')
+        .select('precocompra, precovenda')
+        .eq('numlote', parseInt(formData.batchId))
+        .single();
+
+      if (loteError) throw loteError;
+      
+      // Primeiro, salvar a aplicação no banco com os preços históricos
       const { error: aplicacaoError } = await supabase
         .from('aplicacao')
         .insert({
@@ -130,6 +139,8 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
           dataaplicacao: dataHoraAtual,
           dose: formData.doseNumber,
           observacoes: formData.notes || null,
+          precocompra: loteData.precocompra,
+          precovenda: loteData.precovenda,
         });
 
       if (aplicacaoError) throw aplicacaoError;
