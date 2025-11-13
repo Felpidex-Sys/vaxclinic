@@ -49,7 +49,7 @@ export const Dashboard: React.FC = () => {
       
       const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesHojeData, agendamentosProximosData, totalAgendamentosData, agendamentosHojeData] = await Promise.all([
         supabase.from('cliente').select('*'),
-        supabase.from('funcionario').select('*').neq('cargo', 'ADMINISTRADOR').eq('status', 'ATIVO'),
+        supabase.from('funcionario').select('*').eq('status', 'ATIVO'),
         supabase.from('vacina').select('*'),
         supabase.from('lote').select('*'),
         supabase.from('aplicacao').select('idaplicacao').gte('dataaplicacao', `${today}T00:00:00`).lte('dataaplicacao', `${today}T23:59:59`),
