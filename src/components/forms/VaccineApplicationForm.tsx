@@ -39,6 +39,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
     nextDueDate: '',
     notes: '',
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const activeEmployees = employees.filter(emp => emp.active === true);
 
@@ -54,17 +55,49 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
     return expirationDate >= today;
   });
 
+  // Limpa erros ao fechar dialog
+  React.useEffect(() => {
+    if (!open) {
+      setFieldErrors({});
+    }
+  }, [open]);
+
+  const clearFieldError = (fieldName: string) => {
+    if (fieldErrors[fieldName]) {
+      const { [fieldName]: _, ...rest } = fieldErrors;
+      setFieldErrors(rest);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.clientId || !formData.vaccineId || !formData.batchId || !formData.employeeId) {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.clientId) {
+      errors.clientId = "Cliente é obrigatório";
+    }
+    if (!formData.vaccineId) {
+      errors.vaccineId = "Vacina é obrigatória";
+    }
+    if (!formData.batchId) {
+      errors.batchId = "Lote é obrigatório";
+    }
+    if (!formData.employeeId) {
+      errors.employeeId = "Vacinador é obrigatório";
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive",
+        title: "⚠ Atenção - Campos obrigatórios",
+        description: `Preencha os ${Object.keys(errors).length} campo(s) destacado(s).`,
+        variant: "default",
       });
       return;
     }
+    
+    setFieldErrors({});
 
     try {
       // Data e hora atuais no formato ISO (horário de Brasília)
@@ -133,9 +166,17 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="client">Cliente *</Label>
-              <Select value={formData.clientId} onValueChange={(value) => setFormData({ ...formData, clientId: value })}>
-                <SelectTrigger>
+              <Label htmlFor="client" className={fieldErrors.clientId ? 'text-red-500' : ''}>
+                Cliente *
+              </Label>
+              <Select 
+                value={formData.clientId} 
+                onValueChange={(value) => {
+                  setFormData({ ...formData, clientId: value });
+                  clearFieldError('clientId');
+                }}
+              >
+                <SelectTrigger className={fieldErrors.clientId ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -146,12 +187,25 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.clientId && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.clientId}
+                </p>
+              )}
             </div>
 
             <div>
-              <Label htmlFor="employee">Vacinador *</Label>
-              <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })}>
-                <SelectTrigger>
+              <Label htmlFor="employee" className={fieldErrors.employeeId ? 'text-red-500' : ''}>
+                Vacinador *
+              </Label>
+              <Select 
+                value={formData.employeeId} 
+                onValueChange={(value) => {
+                  setFormData({ ...formData, employeeId: value });
+                  clearFieldError('employeeId');
+                }}
+              >
+                <SelectTrigger className={fieldErrors.employeeId ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Selecione o vacinador" />
                 </SelectTrigger>
                 <SelectContent>
@@ -162,15 +216,25 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.employeeId && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.employeeId}
+                </p>
+              )}
             </div>
             
             <div>
-              <Label htmlFor="vaccine">Vacina *</Label>
+              <Label htmlFor="vaccine" className={fieldErrors.vaccineId ? 'text-red-500' : ''}>
+                Vacina *
+              </Label>
               <Select 
                 value={formData.vaccineId} 
-                onValueChange={(value) => setFormData({ ...formData, vaccineId: value, batchId: '' })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, vaccineId: value, batchId: '' });
+                  clearFieldError('vaccineId');
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.vaccineId ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Selecione a vacina" />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,16 +245,26 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.vaccineId && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.vaccineId}
+                </p>
+              )}
             </div>
             
             <div>
-              <Label htmlFor="batch">Lote *</Label>
+              <Label htmlFor="batch" className={fieldErrors.batchId ? 'text-red-500' : ''}>
+                Lote *
+              </Label>
               <Select 
                 value={formData.batchId} 
-                onValueChange={(value) => setFormData({ ...formData, batchId: value })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, batchId: value });
+                  clearFieldError('batchId');
+                }}
                 disabled={!formData.vaccineId}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.batchId ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Selecione o lote" />
                 </SelectTrigger>
                 <SelectContent>
@@ -201,6 +275,11 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.batchId && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.batchId}
+                </p>
+              )}
             </div>
             
             <div>
