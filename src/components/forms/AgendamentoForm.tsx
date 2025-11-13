@@ -43,6 +43,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
   });
 
   const [selectedVacinaId, setSelectedVacinaId] = useState<number | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (editingAgendamento) {
@@ -68,6 +69,20 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
     }
   }, [editingAgendamento, location.state, batches]);
 
+  // Limpa erros ao fechar dialog
+  useEffect(() => {
+    if (!open) {
+      setFieldErrors({});
+    }
+  }, [open]);
+
+  const clearFieldError = (fieldName: string) => {
+    if (fieldErrors[fieldName]) {
+      const { [fieldName]: _, ...rest } = fieldErrors;
+      setFieldErrors(rest);
+    }
+  };
+
   const isLoteValido = (lote: Lote) => {
     // Considera válido até o fim do dia de validade em Brasília
     const hojeBrt = getBrasiliaDate();
@@ -78,14 +93,29 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.Cliente_CPF || !formData.Lote_numLote || !formData.dataAgendada) {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.Cliente_CPF) {
+      errors.Cliente_CPF = "Cliente é obrigatório";
+    }
+    if (!formData.Lote_numLote) {
+      errors.Lote_numLote = "Lote é obrigatório";
+    }
+    if (!formData.dataAgendada) {
+      errors.dataAgendada = "Data do agendamento é obrigatória";
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive",
+        title: "⚠ Atenção - Campos obrigatórios",
+        description: `Preencha os ${Object.keys(errors).length} campo(s) destacado(s).`,
+        variant: "default",
       });
       return;
     }
+    
+    setFieldErrors({});
 
     const localTimestamp = formData.dataAgendada.length === 16
       ? `${formData.dataAgendada}:00`
@@ -136,12 +166,17 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="cliente">Cliente *</Label>
+              <Label htmlFor="cliente" className={fieldErrors.Cliente_CPF ? 'text-red-500' : ''}>
+                Cliente *
+              </Label>
               <Select 
                 value={formData.Cliente_CPF > 0 ? formData.Cliente_CPF.toString() : ""} 
-                onValueChange={(value) => setFormData({ ...formData, Cliente_CPF: parseInt(value) })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, Cliente_CPF: parseInt(value) });
+                  clearFieldError('Cliente_CPF');
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.Cliente_CPF ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -152,6 +187,11 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.Cliente_CPF && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.Cliente_CPF}
+                </p>
+              )}
             </div>
             
             <div>
@@ -177,12 +217,17 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="lote">Lote da Vacina *</Label>
+              <Label htmlFor="lote" className={fieldErrors.Lote_numLote ? 'text-red-500' : ''}>
+                Lote da Vacina *
+              </Label>
               <Select 
                 value={formData.Lote_numLote > 0 ? formData.Lote_numLote.toString() : ""} 
-                onValueChange={(value) => setFormData({ ...formData, Lote_numLote: parseInt(value) })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, Lote_numLote: parseInt(value) });
+                  clearFieldError('Lote_numLote');
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.Lote_numLote ? 'border-red-500' : ''}>
                   <SelectValue placeholder={selectedVacinaId ? "Selecione o lote" : "Selecione a vacina primeiro"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -196,17 +241,33 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
                     ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.Lote_numLote && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.Lote_numLote}
+                </p>
+              )}
             </div>
             
             <div>
-              <Label htmlFor="dataAgendada">Data e Hora *</Label>
+              <Label htmlFor="dataAgendada" className={fieldErrors.dataAgendada ? 'text-red-500' : ''}>
+                Data e Hora *
+              </Label>
               <Input
                 id="dataAgendada"
                 type="datetime-local"
                 value={formData.dataAgendada}
-                onChange={(e) => setFormData({ ...formData, dataAgendada: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, dataAgendada: e.target.value });
+                  clearFieldError('dataAgendada');
+                }}
+                className={fieldErrors.dataAgendada ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 required
               />
+              {fieldErrors.dataAgendada && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.dataAgendada}
+                </p>
+              )}
             </div>
           </div>
           

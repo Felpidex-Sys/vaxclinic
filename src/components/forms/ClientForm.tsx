@@ -35,6 +35,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     observations: '',
     status: 'ATIVO' as 'ATIVO' | 'INATIVO',
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Update form data when client prop changes
   React.useEffect(() => {
@@ -63,7 +64,18 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         status: 'ATIVO',
       });
     }
+    // Limpa erros ao fechar dialog
+    if (!open) {
+      setFieldErrors({});
+    }
   }, [client, open]);
+
+  const clearFieldError = (fieldName: string) => {
+    if (fieldErrors[fieldName]) {
+      const { [fieldName]: _, ...rest } = fieldErrors;
+      setFieldErrors(rest);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,12 +90,19 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     // Validação com Zod
     try {
       clienteSchema.parse(cleanedData);
+      setFieldErrors({});
     } catch (error: any) {
-      const errorMessage = error.errors?.[0]?.message || "Dados inválidos";
+      const errors: Record<string, string> = {};
+      error.errors.forEach((err: any) => {
+        const field = err.path[0] as string;
+        errors[field] = err.message;
+      });
+      setFieldErrors(errors);
+      
       toast({
-        title: "Erro de validação",
-        description: errorMessage,
-        variant: "destructive",
+        title: "⚠ Atenção - Campos inválidos",
+        description: `Corrija os ${error.errors.length} campo(s) destacado(s) em vermelho.`,
+        variant: "default",
       });
       return;
     }
@@ -121,62 +140,116 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Nome Completo *</Label>
+              <Label htmlFor="name" className={fieldErrors.name ? 'text-red-500' : ''}>
+                Nome Completo *
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  clearFieldError('name');
+                }}
+                className={fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 placeholder="Digite o nome completo"
                 required
               />
+              {fieldErrors.name && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.name}
+                </p>
+              )}
             </div>
             
             <div>
-              <Label htmlFor="cpf">CPF *</Label>
+              <Label htmlFor="cpf" className={fieldErrors.cpf ? 'text-red-500' : ''}>
+                CPF *
+              </Label>
               <MaskedInput
                 mask="999.999.999-99"
                 id="cpf"
                 value={formData.cpf}
-                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, cpf: e.target.value });
+                  clearFieldError('cpf');
+                }}
+                className={fieldErrors.cpf ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 placeholder="000.000.000-00"
                 required
                 disabled={!!client}
-                className={!!client ? 'opacity-60 cursor-not-allowed' : ''}
               />
+              {fieldErrors.cpf && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.cpf}
+                </p>
+              )}
             </div>
             
             <div>
-              <Label htmlFor="dateOfBirth">Data de Nascimento *</Label>
+              <Label htmlFor="dateOfBirth" className={fieldErrors.dateOfBirth ? 'text-red-500' : ''}>
+                Data de Nascimento *
+              </Label>
               <Input
                 id="dateOfBirth"
                 type="date"
                 value={formData.dateOfBirth}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, dateOfBirth: e.target.value });
+                  clearFieldError('dateOfBirth');
+                }}
+                className={fieldErrors.dateOfBirth ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 required
               />
+              {fieldErrors.dateOfBirth && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.dateOfBirth}
+                </p>
+              )}
             </div>
             
             <div>
-              <Label htmlFor="phone">Telefone *</Label>
+              <Label htmlFor="phone" className={fieldErrors.phone ? 'text-red-500' : ''}>
+                Telefone *
+              </Label>
               <MaskedInput
                 mask="(99) 99999-9999"
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, phone: e.target.value });
+                  clearFieldError('phone');
+                }}
+                className={fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 placeholder="(00) 00000-0000"
                 required
               />
+              {fieldErrors.phone && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.phone}
+                </p>
+              )}
             </div>
             
             <div>
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email" className={fieldErrors.email ? 'text-red-500' : ''}>
+                E-mail
+              </Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  clearFieldError('email');
+                }}
+                className={fieldErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 placeholder="email@exemplo.com"
               />
+              {fieldErrors.email && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.email}
+                </p>
+              )}
             </div>
             
             <div>
