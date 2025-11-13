@@ -59,7 +59,7 @@ export const Dashboard: React.FC = () => {
           .eq('status', 'AGENDADO')
           .order('dataagendada', { ascending: true })
           .limit(50),
-        supabase.from('agendamento').select('*', { count: 'exact', head: true }),
+        supabase.from('agendamento').select('*', { count: 'exact', head: true }).eq('status', 'AGENDADO'),
         supabase
           .from('agendamento')
           .select('idagendamento')
@@ -195,7 +195,7 @@ export const Dashboard: React.FC = () => {
 
       setStats({
         totalClients: mappedClients.length,
-        totalEmployees: mappedEmployees.length,
+        totalEmployees: mappedEmployees.filter(e => e.active).length,
         totalVaccines: mappedVaccines.length,
         vaccinationsToday: aplicacoesHojeData.data?.length || 0,
         totalAgendamentos: totalAgendamentosData.count || 0,
