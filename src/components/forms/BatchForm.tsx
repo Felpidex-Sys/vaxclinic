@@ -35,6 +35,7 @@ interface BatchFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   vaccines: Array<{ id: string; name: string }>;
+  preselectedVaccineId?: string;
   batch?: {
     numlote: number;
     vacina_idvacina: number;
@@ -52,6 +53,7 @@ export const BatchForm: React.FC<BatchFormProps> = ({
   open,
   onOpenChange,
   vaccines,
+  preselectedVaccineId,
   batch,
   onSave,
 }) => {
@@ -78,8 +80,12 @@ export const BatchForm: React.FC<BatchFormProps> = ({
       setValue('precovenda', batch.precovenda || 0);
     } else {
       reset();
+      // Se tiver vacina pré-selecionada, preencher
+      if (preselectedVaccineId) {
+        setValue('vacina_idvacina', parseInt(preselectedVaccineId));
+      }
     }
-  }, [batch, setValue, reset]);
+  }, [batch, preselectedVaccineId, setValue, reset]);
 
   const onSubmit = async (data: BatchFormData) => {
     await onSave(data);

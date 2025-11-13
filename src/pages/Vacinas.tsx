@@ -444,6 +444,7 @@ export const Vacinas: React.FC = () => {
             variant="outline"
             onClick={() => {
               setEditingBatch(null);
+              setSelectedVaccine(null);
               setShowBatchForm(true);
             }}
           >
@@ -827,6 +828,7 @@ export const Vacinas: React.FC = () => {
           }
         }}
         vaccines={vaccines.map(v => ({ id: v.id, name: v.name }))}
+        preselectedVaccineId={selectedVaccine?.id}
         batch={editingBatch}
         onSave={handleSaveBatch}
       />
