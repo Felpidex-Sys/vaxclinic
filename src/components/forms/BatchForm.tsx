@@ -113,7 +113,7 @@ export const BatchForm: React.FC<BatchFormProps> = ({
             <Select
               value={vaccineId?.toString()}
               onValueChange={(value) => setValue('vacina_idvacina', parseInt(value))}
-              disabled={!!batch}
+              disabled={!!batch || !!preselectedVaccineId}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a vacina" />
