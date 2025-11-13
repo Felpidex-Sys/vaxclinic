@@ -23,6 +23,8 @@ interface HistoricoAplicacao {
   reacoesadversas?: string;
   observacoes?: string;
   cliente_alergias?: string;
+  precocompra?: number;
+  precovenda?: number;
 }
 
 interface Vacina {
@@ -94,6 +96,8 @@ export const Historico: React.FC = () => {
           reacoesadversas,
           observacoes,
           cliente_cpf,
+          precocompra,
+          precovenda,
           cliente:fk_aplicacao_cliente (
             nomecompleto,
             cpf,
@@ -128,6 +132,8 @@ export const Historico: React.FC = () => {
         reacoesadversas: aplicacao.reacoesadversas,
         observacoes: aplicacao.observacoes,
         cliente_alergias: aplicacao.cliente?.alergias,
+        precocompra: aplicacao.precocompra || 0,
+        precovenda: aplicacao.precovenda || 0,
       }));
 
       setHistorico(enrichedData);

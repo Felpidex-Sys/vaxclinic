@@ -122,7 +122,7 @@ export const Relatorios: React.FC = () => {
         createdAt: toBrasiliaISOString(),
       }));
 
-      const mappedVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map(a => ({
+      const mappedVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map((a: any) => ({
         id: a.idaplicacao.toString(),
         clientId: a.cliente_cpf,
         vaccineId: '',
