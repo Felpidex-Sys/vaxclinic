@@ -94,17 +94,17 @@ export const Historico: React.FC = () => {
           reacoesadversas,
           observacoes,
           cliente_cpf,
-          cliente:cliente_cpf (
+          cliente:fk_aplicacao_cliente (
             nomecompleto,
             cpf,
             alergias
           ),
-          funcionario:funcionario_idfuncionario (
+          funcionario:fk_aplicacao_funcionario (
             nomecompleto
           ),
-          lote:lote_numlote (
+          lote:fk_aplicacao_lote (
             codigolote,
-            vacina:vacina_idvacina (
+            vacina:fk_lote_vacina (
               nome,
               fabricante
             )
