@@ -63,6 +63,16 @@ All colors MUST be HSL. Using specified medical colors.
     --sidebar-accent-foreground: 0 0% 97%;
     --sidebar-border: 207 30% 42%;
     --sidebar-ring: 208 26% 66%;
+
+    /* Chart colors - vibrant medical palette */
+    --chart-1: 217 91% 60%; /* Azul vibrante */
+    --chart-2: 142 71% 45%; /* Verde esmeralda */
+    --chart-3: 262 83% 58%; /* Roxo */
+    --chart-4: 38 92% 50%; /* Laranja */
+    --chart-5: 330 81% 60%; /* Rosa */
+    --chart-6: 189 94% 43%; /* Ciano */
+    --chart-7: 84 81% 44%; /* Lima */
+    --chart-8: 0 84% 60%; /* Vermelho */
   }
 
   .dark {

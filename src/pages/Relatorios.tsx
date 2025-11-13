@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   LineChart, 
   Line, 
@@ -23,6 +27,7 @@ import { Client, User, Vaccine, VaccinationRecord, VaccineBatch } from '@/types'
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { toBrasiliaISOString } from '@/lib/utils';
+import { TrendingUp, TrendingDown, Award, BarChart3 } from 'lucide-react';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -30,9 +35,9 @@ const COLORS = [
   'hsl(var(--chart-3))',
   'hsl(var(--chart-4))',
   'hsl(var(--chart-5))',
-  'hsl(217, 91%, 60%)',
-  'hsl(340, 82%, 52%)',
-  'hsl(84, 81%, 44%)',
+  'hsl(var(--chart-6))',
+  'hsl(var(--chart-7))',
+  'hsl(var(--chart-8))',
 ];
 
 const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -49,6 +54,11 @@ export const Relatorios: React.FC = () => {
   const [reportType, setReportType] = useState('yearly');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState('all');
+  const [selectedVaccine, setSelectedVaccine] = useState<string>('all');
+  
+  const [compareMode, setCompareMode] = useState(false);
+  const [vaccine1, setVaccine1] = useState<string>('');
+  const [vaccine2, setVaccine2] = useState<string>('');
 
   useEffect(() => {
     fetchData();
@@ -148,13 +158,23 @@ export const Relatorios: React.FC = () => {
     }
   };
 
-  // Filtrar dados pelo período
-  const vacinacoesNoPeriodo = vaccinations.filter(v => filterByPeriod(v.applicationDate));
+  const vacinacoesNoPeriodo = useMemo(() => {
+    return vaccinations.filter(v => {
+      if (!filterByPeriod(v.applicationDate)) return false;
+      
+      if (selectedVaccine !== 'all') {
+        const batch = batches.find(b => b.id === v.batchId);
+        return batch?.vaccineId === selectedVaccine;
+      }
+      
+      return true;
+    });
+  }, [vaccinations, selectedYear, selectedMonth, reportType, selectedVaccine, batches]);
+
   const agendamentosNoPeriodo = agendamentos.filter(a => 
     a.status === 'AGENDADO' && filterByPeriod(a.dataagendada)
   );
 
-  // Calcular métricas do resumo
   const vacinasDisponiveis = batches.reduce((sum, b) => sum + b.remainingQuantity, 0);
   const vacinasAgendadas = agendamentosNoPeriodo.length;
   const vacinasAplicadas = vacinacoesNoPeriodo.length;
@@ -165,7 +185,6 @@ export const Relatorios: React.FC = () => {
     return filterByPeriod(b.expirationDate) && expDate < today;
   }).length;
 
-  // Dados para gráfico de linha - Vacinações por mês
   const vaccinationsByMonth = monthNames.map((month, index) => {
     const count = vacinacoesNoPeriodo.filter(v => {
       const date = new Date(v.applicationDate);
@@ -174,7 +193,6 @@ export const Relatorios: React.FC = () => {
     return { month, count };
   });
 
-  // Dados para gráfico de barras - Lucro e Perda (CORRIGIDO)
   const profitLossByMonth = monthNames.map((month, index) => {
     const monthVaccinations = vacinacoesNoPeriodo.filter(v => {
       const date = new Date(v.applicationDate);
@@ -204,7 +222,6 @@ export const Relatorios: React.FC = () => {
     };
   });
 
-  // Dados para gráfico de pizza - Distribuição de vacinas aplicadas
   const vacinasPorTipo = vaccines.map(vaccine => {
     const count = vacinacoesNoPeriodo.filter(v => {
       const batch = batches.find(b => b.id === v.batchId);
@@ -225,27 +242,29 @@ export const Relatorios: React.FC = () => {
     porcentagem: totalVacinas > 0 ? parseFloat(((v.quantidade / totalVacinas) * 100).toFixed(1)) : 0,
   }));
 
-  // Dados para gráfico de pizza - Status do Estoque
   const statusEstoque = [
     { 
       status: 'Disponíveis', 
       quantidade: vacinasDisponiveis,
+      fill: 'hsl(var(--chart-2))',
     },
     { 
       status: 'Agendadas', 
       quantidade: vacinasAgendadas,
+      fill: 'hsl(var(--chart-1))',
     },
     { 
       status: 'Aplicadas', 
       quantidade: vacinasAplicadas,
+      fill: 'hsl(var(--chart-3))',
     },
     { 
       status: 'Vencidas', 
       quantidade: vacinasVencidas,
+      fill: 'hsl(var(--chart-8))',
     },
   ].filter(s => s.quantidade > 0);
 
-  // Dados para gráfico de pizza - Distribuição por faixa etária
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
     const birth = new Date(dateOfBirth);
@@ -257,7 +276,7 @@ export const Relatorios: React.FC = () => {
     return age;
   };
 
-  const faixasEtarias: Record<string, number> = {
+  const faixasEtarias = {
     'Crianças (0-12)': 0,
     'Adolescentes (13-17)': 0,
     'Adultos (18-59)': 0,
@@ -275,11 +294,12 @@ export const Relatorios: React.FC = () => {
     }
   });
 
-  const faixasEtariasData = Object.entries(faixasEtarias)
-    .map(([faixa, quantidade]) => ({ faixa, quantidade }))
-    .filter(f => f.quantidade > 0);
+  const faixasEtariasData = Object.entries(faixasEtarias).map(([faixa, quantidade], index) => ({
+    faixa,
+    quantidade,
+    fill: COLORS[index % COLORS.length],
+  })).filter(f => f.quantidade > 0);
 
-  // Dados para gráfico de área - Acumulado de aplicações
   const aplicacoesAcumuladas = monthNames.map((month, index) => {
     const aplicacoesAteOMes = vacinacoesNoPeriodo.filter(v => {
       const date = new Date(v.applicationDate);
@@ -292,7 +312,6 @@ export const Relatorios: React.FC = () => {
     };
   });
 
-  // Top 5 vacinas por lucro
   const top5Lucro = vaccines.map(vaccine => {
     const aplicacoesVacina = vacinacoesNoPeriodo.filter(v => {
       const batch = batches.find(b => b.id === v.batchId);
@@ -303,20 +322,22 @@ export const Relatorios: React.FC = () => {
     aplicacoesVacina.forEach(apl => {
       const batch = batches.find(b => b.id === apl.batchId);
       if (batch && batch.salePrice && batch.purchasePrice) {
-        lucroTotal += (batch.salePrice - batch.purchasePrice);
+        const margem = batch.salePrice - batch.purchasePrice;
+        if (margem > 0) {
+          lucroTotal += margem;
+        }
       }
     });
 
     return {
       nome: vaccine.name,
       lucro: lucroTotal,
-      aplicacoes: aplicacoesVacina.length,
+      quantidade: aplicacoesVacina.length,
     };
   }).filter(v => v.lucro > 0)
     .sort((a, b) => b.lucro - a.lucro)
     .slice(0, 5);
 
-  // Top 5 vacinas por perda
   const top5Perda = vaccines.map(vaccine => {
     const aplicacoesVacina = vacinacoesNoPeriodo.filter(v => {
       const batch = batches.find(b => b.id === v.batchId);
@@ -337,41 +358,94 @@ export const Relatorios: React.FC = () => {
     return {
       nome: vaccine.name,
       perda: perdaTotal,
-      aplicacoes: aplicacoesVacina.length,
+      quantidade: aplicacoesVacina.length,
     };
   }).filter(v => v.perda > 0)
     .sort((a, b) => b.perda - a.perda)
     .slice(0, 5);
 
-  // Vacinas mais e menos vendidas
-  const vacinasVendidas = vaccines.map(vaccine => {
-    const aplicacoes = vacinacoesNoPeriodo.filter(v => {
-      const batch = batches.find(b => b.id === v.batchId);
-      return batch?.vaccineId === vaccine.id;
-    }).length;
+  const vacinaMaisVendida = vaccines
+    .map(vaccine => {
+      const count = vacinacoesNoPeriodo.filter(v => {
+        const batch = batches.find(b => b.id === v.batchId);
+        return batch?.vaccineId === vaccine.id;
+      }).length;
+      return { ...vaccine, count };
+    })
+    .filter(v => v.count > 0)
+    .sort((a, b) => b.count - a.count)[0];
 
-    return {
-      nome: vaccine.name,
-      quantidadeVendida: aplicacoes,
+  const vacinaMenosVendida = vaccines
+    .map(vaccine => {
+      const count = vacinacoesNoPeriodo.filter(v => {
+        const batch = batches.find(b => b.id === v.batchId);
+        return batch?.vaccineId === vaccine.id;
+      }).length;
+      return { ...vaccine, count };
+    })
+    .filter(v => v.count > 0)
+    .sort((a, b) => a.count - b.count)[0];
+
+  const availableYears = Array.from(
+    new Set(vaccinations.map(v => new Date(v.applicationDate).getFullYear()))
+  ).sort((a, b) => b - a);
+
+  const comparisonData = useMemo(() => {
+    if (!vaccine1 || !vaccine2) return null;
+    
+    const calcVaccineStats = (vaccineId: string) => {
+      const aplicacoes = vacinacoesNoPeriodo.filter(v => {
+        const batch = batches.find(b => b.id === v.batchId);
+        return batch?.vaccineId === vaccineId;
+      });
+      
+      let lucro = 0, perda = 0;
+      aplicacoes.forEach(a => {
+        const batch = batches.find(b => b.id === a.batchId);
+        if (batch && batch.salePrice && batch.purchasePrice) {
+          const margem = batch.salePrice - batch.purchasePrice;
+          if (margem > 0) lucro += margem;
+          else perda += Math.abs(margem);
+        }
+      });
+      
+      return {
+        aplicacoes: aplicacoes.length,
+        lucro,
+        perda,
+        ticketMedio: aplicacoes.length > 0 ? (lucro - perda) / aplicacoes.length : 0,
+      };
     };
-  }).filter(v => v.quantidadeVendida > 0)
-    .sort((a, b) => b.quantidadeVendida - a.quantidadeVendida);
-
-  const maisVendida = vacinasVendidas[0];
-  const menosVendida = vacinasVendidas[vacinasVendidas.length - 1];
-
-  // Anos disponíveis
-  const availableYears = Array.from(new Set(
-    vaccinations.map(v => new Date(v.applicationDate).getFullYear())
-  )).sort((a, b) => b - a);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Carregando relatórios...</p>
-      </div>
-    );
-  }
+    
+    const stats1 = calcVaccineStats(vaccine1);
+    const stats2 = calcVaccineStats(vaccine2);
+    const vaccine1Name = vaccines.find(v => v.id === vaccine1)?.name || 'Vacina 1';
+    const vaccine2Name = vaccines.find(v => v.id === vaccine2)?.name || 'Vacina 2';
+    
+    return {
+      vaccine1: stats1,
+      vaccine2: stats2,
+      chartData: [
+        {
+          metric: 'Aplicações',
+          [vaccine1Name]: stats1.aplicacoes,
+          [vaccine2Name]: stats2.aplicacoes,
+        },
+        {
+          metric: 'Lucro (R$)',
+          [vaccine1Name]: parseFloat(stats1.lucro.toFixed(2)),
+          [vaccine2Name]: parseFloat(stats2.lucro.toFixed(2)),
+        },
+        {
+          metric: 'Ticket Médio (R$)',
+          [vaccine1Name]: parseFloat(stats1.ticketMedio.toFixed(2)),
+          [vaccine2Name]: parseFloat(stats2.ticketMedio.toFixed(2)),
+        },
+      ],
+      vaccine1Name,
+      vaccine2Name,
+    };
+  }, [vaccine1, vaccine2, vacinacoesNoPeriodo, batches, vaccines]);
 
   const chartConfig = {
     count: {
@@ -384,28 +458,34 @@ export const Relatorios: React.FC = () => {
     },
     perda: {
       label: "Perda",
-      color: "hsl(var(--chart-3))",
+      color: "hsl(var(--chart-8))",
     },
     acumulado: {
       label: "Acumulado",
-      color: "hsl(var(--chart-4))",
+      color: "hsl(var(--chart-3))",
     },
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-lg">Carregando relatórios...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">📊 Relatório de Vacinas</h1>
-        <p className="text-muted-foreground">
-          Visualize estatísticas e análises detalhadas
-        </p>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">📊 Relatório de Vacinas</h1>
       </div>
 
-      {/* Filtros */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Tipo de Relatório</label>
               <Select value={reportType} onValueChange={setReportType}>
@@ -418,7 +498,7 @@ export const Relatorios: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Ano</label>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -453,153 +533,187 @@ export const Relatorios: React.FC = () => {
                 </Select>
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Card de Resumo */}
-      <Card>
-        <CardHeader>
-          <CardTitle>📋 Resumo do Período</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">💊 Disponíveis</p>
-              <p className="text-2xl font-bold text-primary">{vacinasDisponiveis}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">📅 Agendadas</p>
-              <p className="text-2xl font-bold text-chart-1">{vacinasAgendadas}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">💉 Aplicadas</p>
-              <p className="text-2xl font-bold text-chart-2">{vacinasAplicadas}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">⚠️ Vencidas</p>
-              <p className="text-2xl font-bold text-destructive">{vacinasVencidas}</p>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Vacina</label>
+              <Select value={selectedVaccine} onValueChange={setSelectedVaccine}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as vacinas</SelectItem>
+                  {vaccines.map(vaccine => (
+                    <SelectItem key={vaccine.id} value={vaccine.id}>
+                      {vaccine.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Gráficos principais */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="card-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Disponíveis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-chart-2">{vacinasDisponiveis}</div>
+            <p className="text-xs text-muted-foreground mt-1">vacinas em estoque</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Agendadas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-chart-1">{vacinasAgendadas}</div>
+            <p className="text-xs text-muted-foreground mt-1">aplicações agendadas</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Aplicadas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-chart-3">{vacinasAplicadas}</div>
+            <p className="text-xs text-muted-foreground mt-1">no período</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Vencidas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-chart-8">{vacinasVencidas}</div>
+            <p className="text-xs text-muted-foreground mt-1">lotes vencidos</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Gráfico de Linha - Vacinações */}
-        <Card>
+        <Card className="card-shadow">
           <CardHeader>
             <CardTitle>📈 Vacinações por Mês</CardTitle>
-            <CardDescription>Total de aplicações realizadas</CardDescription>
+            <CardDescription>Número de aplicações realizadas por mês</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px]">
-              <LineChart data={vaccinationsByMonth}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="var(--color-count)" 
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={vaccinationsByMonth}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke="hsl(var(--chart-1))" 
+                    strokeWidth={2}
+                    dot={{ fill: "hsl(var(--chart-1))" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        {/* Gráfico de Barras - Lucro e Perda */}
-        <Card>
+        <Card className="card-shadow">
           <CardHeader>
-            <CardTitle>💰 Lucro e Perda</CardTitle>
+            <CardTitle>💰 Lucro e Perda por Mês</CardTitle>
             <CardDescription>Análise financeira mensal</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px]">
-              <BarChart data={profitLossByMonth}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="lucro" fill="var(--color-lucro)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="perda" fill="var(--color-perda)" radius={[4, 4, 0, 0]} />
-              </BarChart>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={profitLossByMonth}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="lucro" fill="hsl(var(--chart-2))" name="Lucro" />
+                  <Bar dataKey="perda" fill="hsl(var(--chart-8))" name="Perda" />
+                </BarChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráficos de Pizza */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Pizza - Distribuição de Vacinas */}
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="card-shadow">
           <CardHeader>
             <CardTitle>🧮 Distribuição de Vacinas</CardTitle>
-            <CardDescription>Proporção de vacinas aplicadas</CardDescription>
+            <CardDescription>Proporção de vacinas aplicadas por tipo</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px]">
-              <PieChart>
-                <Pie
-                  data={vacinasPorTipoComPorcentagem}
-                  dataKey="quantidade"
-                  nameKey="nome"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={(entry) => `${entry.nome}: ${entry.porcentagem}%`}
-                >
-                  {vacinasPorTipoComPorcentagem.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={vacinasPorTipoComPorcentagem}
+                    dataKey="quantidade"
+                    nameKey="nome"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={(entry) => `${entry.porcentagem}%`}
+                  >
+                    {vacinasPorTipoComPorcentagem.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        {/* Pizza - Status do Estoque */}
-        <Card>
+        <Card className="card-shadow">
           <CardHeader>
             <CardTitle>📊 Status do Estoque</CardTitle>
-            <CardDescription>Situação geral das vacinas</CardDescription>
+            <CardDescription>Situação atual das vacinas</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px]">
-              <PieChart>
-                <Pie
-                  data={statusEstoque}
-                  dataKey="quantidade"
-                  nameKey="status"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label
-                >
-                  {statusEstoque.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusEstoque}
+                    dataKey="quantidade"
+                    nameKey="status"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label
+                  >
+                    {statusEstoque.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        {/* Pizza - Faixa Etária */}
-        {faixasEtariasData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>👥 Distribuição por Faixa Etária</CardTitle>
-              <CardDescription>Clientes vacinados por idade</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
+        <Card className="card-shadow">
+          <CardHeader>
+            <CardTitle>👥 Faixa Etária</CardTitle>
+            <CardDescription>Distribuição por idade dos vacinados</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={faixasEtariasData}
@@ -611,125 +725,325 @@ export const Relatorios: React.FC = () => {
                     label
                   >
                     {faixasEtariasData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
                   <Tooltip />
                   <Legend />
                 </PieChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Área - Acumulado de Aplicações */}
-        <Card>
-          <CardHeader>
-            <CardTitle>📈 Acumulado de Aplicações</CardTitle>
-            <CardDescription>Crescimento ao longo do tempo</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <AreaChart data={aplicacoesAcumuladas}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Area 
-                  type="monotone" 
-                  dataKey="acumulado" 
-                  stroke="var(--color-acumulado)" 
-                  fill="var(--color-acumulado)" 
-                  fillOpacity={0.6}
-                />
-              </AreaChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Análise por Vacina */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Top 5 Lucro */}
-        {top5Lucro.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>💎 Top 5 Vacinas por Lucro</CardTitle>
-              <CardDescription>Vacinas mais rentáveis</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {top5Lucro.map((vaccine, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+        <Card className="card-shadow">
+          <CardHeader>
+            <CardTitle>📈 Acumulado de Aplicações</CardTitle>
+            <CardDescription>Crescimento acumulado ao longo do ano</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={aplicacoesAcumuladas}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="acumulado" 
+                    stroke="hsl(var(--chart-3))" 
+                    fill="hsl(var(--chart-3))"
+                    fillOpacity={0.6}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="card-shadow">
+          <CardHeader>
+            <CardTitle>💎 Top 5 Vacinas por Lucro</CardTitle>
+            <CardDescription>Vacinas mais lucrativas do período</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {top5Lucro.map((vaccine, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
                     <div>
-                      <p className="font-medium">{index + 1}. {vaccine.nome}</p>
-                      <p className="text-sm text-muted-foreground">{vaccine.aplicacoes} aplicações</p>
+                      <p className="font-medium">{vaccine.nome}</p>
+                      <p className="text-xs text-muted-foreground">{vaccine.quantidade} aplicações</p>
                     </div>
-                    <p className="text-lg font-bold text-chart-2">
-                      R$ {vaccine.lucro.toFixed(2)}
-                    </p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  <div className="text-right">
+                    <p className="font-bold text-chart-2">R$ {vaccine.lucro.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Top 5 Perda */}
-        {top5Perda.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>📉 Top 5 Vacinas por Perda</CardTitle>
-              <CardDescription>Vacinas com maior prejuízo</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {top5Perda.map((vaccine, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="card-shadow">
+          <CardHeader>
+            <CardTitle>📉 Top 5 Vacinas por Perda</CardTitle>
+            <CardDescription>Vacinas com maior perda financeira</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {top5Perda.map((vaccine, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
                     <div>
-                      <p className="font-medium">{index + 1}. {vaccine.nome}</p>
-                      <p className="text-sm text-muted-foreground">{vaccine.aplicacoes} aplicações</p>
+                      <p className="font-medium">{vaccine.nome}</p>
+                      <p className="text-xs text-muted-foreground">{vaccine.quantidade} aplicações</p>
                     </div>
-                    <p className="text-lg font-bold text-destructive">
-                      R$ {vaccine.perda.toFixed(2)}
-                    </p>
                   </div>
-                ))}
+                  <div className="text-right">
+                    <p className="font-bold text-chart-8">R$ {vaccine.perda.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+              {top5Perda.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">Nenhuma perda registrada</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {vacinaMaisVendida && (
+          <Card className="card-shadow border-2 border-chart-2">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="w-6 h-6 text-chart-2" />
+                  Vacina Mais Aplicada
+                </CardTitle>
+                <Badge className="bg-chart-2 text-white">🏆 Top 1</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center space-y-4">
+                <div>
+                  <p className="text-2xl font-bold">{vacinaMaisVendida.name}</p>
+                  <p className="text-sm text-muted-foreground">{vacinaMaisVendida.manufacturer}</p>
+                </div>
+                <div className="flex items-center justify-center gap-8">
+                  <div>
+                    <p className="text-4xl font-bold text-chart-2">{vacinaMaisVendida.count}</p>
+                    <p className="text-sm text-muted-foreground">aplicações</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-chart-2">
+                      {totalVacinas > 0 ? ((vacinaMaisVendida.count / totalVacinas) * 100).toFixed(1) : 0}%
+                    </p>
+                    <p className="text-sm text-muted-foreground">do total</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Mais Vendida */}
-        {maisVendida && (
-          <Card>
+        {vacinaMenosVendida && (
+          <Card className="card-shadow border-2 border-chart-4">
             <CardHeader>
-              <CardTitle>🏅 Vacina Mais Vendida</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center p-6">
-                <p className="text-3xl font-bold text-primary mb-2">{maisVendida.nome}</p>
-                <p className="text-xl text-muted-foreground">{maisVendida.quantidadeVendida} aplicações</p>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-6 h-6 text-chart-4" />
+                  Vacina Menos Aplicada
+                </CardTitle>
+                <Badge variant="outline">📊 Atenção</Badge>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Menos Vendida */}
-        {menosVendida && (
-          <Card>
-            <CardHeader>
-              <CardTitle>📊 Vacina Menos Vendida</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center p-6">
-                <p className="text-3xl font-bold text-muted-foreground mb-2">{menosVendida.nome}</p>
-                <p className="text-xl text-muted-foreground">{menosVendida.quantidadeVendida} aplicações</p>
+              <div className="text-center space-y-4">
+                <div>
+                  <p className="text-2xl font-bold">{vacinaMenosVendida.name}</p>
+                  <p className="text-sm text-muted-foreground">{vacinaMenosVendida.manufacturer}</p>
+                </div>
+                <div className="flex items-center justify-center gap-8">
+                  <div>
+                    <p className="text-4xl font-bold text-chart-4">{vacinaMenosVendida.count}</p>
+                    <p className="text-sm text-muted-foreground">aplicações</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-chart-4">
+                      {totalVacinas > 0 ? ((vacinaMenosVendida.count / totalVacinas) * 100).toFixed(1) : 0}%
+                    </p>
+                    <p className="text-sm text-muted-foreground">do total</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
       </div>
+
+      <Card className="card-shadow">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                🔄 Comparador de Vacinas
+              </CardTitle>
+              <CardDescription>Compare o desempenho entre duas vacinas</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="compare-mode"
+                checked={compareMode}
+                onCheckedChange={setCompareMode}
+              />
+              <Label htmlFor="compare-mode">Ativar</Label>
+            </div>
+          </div>
+        </CardHeader>
+        {compareMode && (
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Vacina 1</label>
+                <Select value={vaccine1} onValueChange={setVaccine1}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vaccines.map(vaccine => (
+                      <SelectItem key={vaccine.id} value={vaccine.id}>
+                        {vaccine.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="text-center">
+                <p className="text-2xl font-bold text-muted-foreground">VS</p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Vacina 2</label>
+                <Select value={vaccine2} onValueChange={setVaccine2}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vaccines.map(vaccine => (
+                      <SelectItem key={vaccine.id} value={vaccine.id}>
+                        {vaccine.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {comparisonData && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="bg-muted/30">
+                    <CardHeader>
+                      <CardTitle className="text-lg">📊 {comparisonData.vaccine1Name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Aplicações:</span>
+                        <span className="font-bold">{comparisonData.vaccine1.aplicacoes}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Lucro:</span>
+                        <span className="font-bold text-chart-2">
+                          R$ {comparisonData.vaccine1.lucro.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Perda:</span>
+                        <span className="font-bold text-chart-8">
+                          R$ {comparisonData.vaccine1.perda.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Ticket Médio:</span>
+                        <span className="font-bold">
+                          R$ {comparisonData.vaccine1.ticketMedio.toFixed(2)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-muted/30">
+                    <CardHeader>
+                      <CardTitle className="text-lg">📊 {comparisonData.vaccine2Name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Aplicações:</span>
+                        <span className="font-bold">{comparisonData.vaccine2.aplicacoes}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Lucro:</span>
+                        <span className="font-bold text-chart-2">
+                          R$ {comparisonData.vaccine2.lucro.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Perda:</span>
+                        <span className="font-bold text-chart-8">
+                          R$ {comparisonData.vaccine2.perda.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Ticket Médio:</span>
+                        <span className="font-bold">
+                          R$ {comparisonData.vaccine2.ticketMedio.toFixed(2)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Comparação Visual</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={chartConfig} className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={comparisonData.chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="metric" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey={comparisonData.vaccine1Name} fill="hsl(var(--chart-1))" />
+                          <Bar dataKey={comparisonData.vaccine2Name} fill="hsl(var(--chart-4))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </CardContent>
+        )}
+      </Card>
     </div>
   );
 };
