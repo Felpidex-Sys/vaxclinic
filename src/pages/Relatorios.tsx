@@ -965,33 +965,31 @@ export const Relatorios: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="card-shadow md:col-span-2">
-          <CardHeader>
-            <CardTitle>📈 Acumulado de Aplicações</CardTitle>
-            <CardDescription>Crescimento acumulado ao longo do ano</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={aplicacoesAcumuladas}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="acumulado" 
-                    stroke="hsl(var(--chart-3))" 
-                    fill="hsl(var(--chart-3))"
-                    fillOpacity={0.6}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="card-shadow">
+        <CardHeader>
+          <CardTitle>📈 Acumulado de Aplicações</CardTitle>
+          <CardDescription>Crescimento acumulado ao longo do ano</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig} className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={aplicacoesAcumuladas}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="acumulado" 
+                  stroke="hsl(var(--chart-3))" 
+                  fill="hsl(var(--chart-3))"
+                  fillOpacity={0.6}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="card-shadow">
