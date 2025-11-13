@@ -127,10 +127,18 @@ export const Dashboard: React.FC = () => {
       const vacinacoesHoje = (aplicacoesHojeData.data || []).length;
 
       const lotesVencendo = mappedBatches.filter(batch => {
+        const hoje = getBrasiliaDate();
+        hoje.setHours(0, 0, 0, 0); // Zera as horas para comparar apenas datas
+        
+        const dataValidade = new Date(batch.expirationDate);
+        dataValidade.setHours(0, 0, 0, 0); // Zera as horas para comparar apenas datas
+        
         const daysUntilExpiration = Math.floor(
-          (new Date(batch.expirationDate).getTime() - getBrasiliaDate().getTime()) / (1000 * 60 * 60 * 24)
+          (dataValidade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
         );
-        return daysUntilExpiration > 0 && daysUntilExpiration <= 30;
+        
+        // Mostrar apenas lotes que ainda não venceram (>= 0) e vencem nos próximos 30 dias
+        return daysUntilExpiration >= 0 && daysUntilExpiration <= 30;
       });
 
       // Buscar dados adicionais para agendamentos próximos
