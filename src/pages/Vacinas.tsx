@@ -441,6 +441,16 @@ export const Vacinas: React.FC = () => {
             Aplicar Vacina
           </Button>
           <Button 
+            variant="outline"
+            onClick={() => {
+              setEditingBatch(null);
+              setShowBatchForm(true);
+            }}
+          >
+            <Package className="w-4 h-4 mr-2" />
+            Adicionar Lote
+          </Button>
+          <Button 
             className="medical-gradient text-white"
             onClick={() => {
               setEditingVaccine(null);
