@@ -28,7 +28,7 @@ import { Client, User, Vaccine, VaccinationRecord, VaccineBatch } from '@/types'
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { toBrasiliaISOString } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Award, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Award, BarChart3, PackageX, AlertTriangle } from 'lucide-react';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -530,57 +530,133 @@ export const Relatorios: React.FC = () => {
     };
   }, [aplicacoesAcumuladas]);
 
-  const top5Lucro = vaccines.map(vaccine => {
-    const aplicacoesVacina = vacinacoesNoPeriodo.filter(v => {
-      const batch = batches.find(b => b.id === v.batchId);
-      return batch?.vaccineId === vaccine.id;
-    });
+  // Estrutura para detalhamento por lote
+  type DetalheLote = {
+    loteId: string;
+    codigoLote: string;
+    nomeVacina: string;
+    tipoPerda?: 'vencimento' | 'margem_negativa';
+    tipoLucro?: 'vendas';
+    valor: number;
+    quantidadeAfetada: number;
+    dataValidade?: string;
+  };
 
-    let lucroTotal = 0;
-    aplicacoesVacina.forEach(apl => {
-      const batch = batches.find(b => b.id === apl.batchId);
-      if (batch && batch.salePrice && batch.purchasePrice) {
-        const margem = batch.salePrice - batch.purchasePrice;
-        if (margem > 0) {
-          lucroTotal += margem;
+  // Análise detalhada por lote
+  const lotesDetalhados = useMemo(() => {
+    const hoje = new Date();
+    
+    return batches.map(lote => {
+      const vaccine = vaccines.find(v => v.id === lote.vaccineId);
+      const vencido = new Date(lote.expirationDate) < hoje;
+      
+      // Contar aplicações desse lote no período
+      const aplicacoesDoLote = vacinacoesNoPeriodo.filter(v => v.batchId === lote.id);
+      
+      let perdaVencimento = 0;
+      let perdaMargem = 0;
+      let lucro = 0;
+      
+      // Calcular perdas por vencimento
+      if (vencido) {
+        const totalPerdido = lote.remainingQuantity; // Quantidade que venceu sem ser vendida
+        perdaVencimento = totalPerdido * (lote.purchasePrice || 0);
+      }
+      
+      // Calcular perdas/lucros por vendas
+      aplicacoesDoLote.forEach(() => {
+        if (lote.salePrice && lote.purchasePrice) {
+          const margem = lote.salePrice - lote.purchasePrice;
+          if (margem < 0) {
+            perdaMargem += Math.abs(margem);
+          } else {
+            lucro += margem;
+          }
         }
+      });
+      
+      return {
+        loteId: lote.id,
+        codigoLote: lote.batchNumber,
+        nomeVacina: vaccine?.name || 'Desconhecida',
+        vencido,
+        perdaVencimento,
+        perdaMargem,
+        lucro,
+        perdaTotal: perdaVencimento + perdaMargem,
+        aplicacoes: aplicacoesDoLote.length,
+        dataValidade: lote.expirationDate,
+        quantidadeRestante: lote.remainingQuantity,
+      };
+    });
+  }, [batches, vaccines, vacinacoesNoPeriodo]);
+
+  // Top 5 Lucros por Lote
+  const top5Lucro: DetalheLote[] = useMemo(() => {
+    return lotesDetalhados
+      .filter(l => l.lucro > 0)
+      .sort((a, b) => b.lucro - a.lucro)
+      .slice(0, 5)
+      .map(l => ({
+        loteId: l.loteId,
+        codigoLote: l.codigoLote,
+        nomeVacina: l.nomeVacina,
+        tipoLucro: 'vendas' as const,
+        valor: l.lucro,
+        quantidadeAfetada: l.aplicacoes,
+      }));
+  }, [lotesDetalhados]);
+
+  // Top 5 Perdas por Lote
+  const top5Perda: DetalheLote[] = useMemo(() => {
+    const perdas: DetalheLote[] = [];
+    
+    // Adicionar perdas por vencimento
+    lotesDetalhados.forEach(l => {
+      if (l.perdaVencimento > 0) {
+        perdas.push({
+          loteId: l.loteId,
+          codigoLote: l.codigoLote,
+          nomeVacina: l.nomeVacina,
+          tipoPerda: 'vencimento',
+          valor: l.perdaVencimento,
+          quantidadeAfetada: l.quantidadeRestante,
+          dataValidade: l.dataValidade,
+        });
+      }
+      
+      // Adicionar perdas por margem negativa
+      if (l.perdaMargem > 0) {
+        perdas.push({
+          loteId: l.loteId,
+          codigoLote: l.codigoLote,
+          nomeVacina: l.nomeVacina,
+          tipoPerda: 'margem_negativa',
+          valor: l.perdaMargem,
+          quantidadeAfetada: l.aplicacoes,
+        });
       }
     });
+    
+    return perdas
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, 5);
+  }, [lotesDetalhados]);
 
+  // Métricas financeiras detalhadas
+  const metricasFinanceiras = useMemo(() => {
+    const perdasVencimento = lotesDetalhados.reduce((sum, l) => sum + l.perdaVencimento, 0);
+    const perdasMargem = lotesDetalhados.reduce((sum, l) => sum + l.perdaMargem, 0);
+    const lucroTotal = lotesDetalhados.reduce((sum, l) => sum + l.lucro, 0);
+    
     return {
-      nome: vaccine.name,
-      lucro: lucroTotal,
-      quantidade: aplicacoesVacina.length,
+      perdasVencimento,
+      perdasMargem,
+      totalPerdas: perdasVencimento + perdasMargem,
+      lucroTotal,
+      balanco: lucroTotal - (perdasVencimento + perdasMargem),
     };
-  }).filter(v => v.lucro > 0)
-    .sort((a, b) => b.lucro - a.lucro)
-    .slice(0, 5);
-
-  const top5Perda = vaccines.map(vaccine => {
-    const aplicacoesVacina = vacinacoesNoPeriodo.filter(v => {
-      const batch = batches.find(b => b.id === v.batchId);
-      return batch?.vaccineId === vaccine.id;
-    });
-
-    let perdaTotal = 0;
-    aplicacoesVacina.forEach(apl => {
-      const batch = batches.find(b => b.id === apl.batchId);
-      if (batch && batch.salePrice && batch.purchasePrice) {
-        const margem = batch.salePrice - batch.purchasePrice;
-        if (margem < 0) {
-          perdaTotal += Math.abs(margem);
-        }
-      }
-    });
-
-    return {
-      nome: vaccine.name,
-      perda: perdaTotal,
-      quantidade: aplicacoesVacina.length,
-    };
-  }).filter(v => v.perda > 0)
-    .sort((a, b) => b.perda - a.perda)
-    .slice(0, 5);
+  }, [lotesDetalhados]);
 
   const vacinaMaisVendida = vaccines
     .map(vaccine => {
@@ -876,22 +952,62 @@ export const Relatorios: React.FC = () => {
 
         <Card className="card-shadow">
           <CardHeader>
-            <CardTitle>💰 Lucro e Perda por Mês</CardTitle>
-            <CardDescription>Análise financeira mensal</CardDescription>
+            <CardTitle>💰 Resumo Financeiro</CardTitle>
+            <CardDescription>Análise detalhada de lucros e perdas</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={profitLossByMonth}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="lucro" fill="hsl(var(--chart-2))" name="Lucro" />
-                  <Bar dataKey="perda" fill="hsl(var(--chart-8))" name="Perda" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-chart-2/10 p-4 rounded-lg border border-chart-2/20">
+                  <p className="text-sm text-muted-foreground mb-1">Lucro Total</p>
+                  <p className="text-2xl font-bold text-chart-2">
+                    R$ {metricasFinanceiras.lucroTotal.toFixed(2)}
+                  </p>
+                </div>
+                
+                <div className="bg-chart-8/10 p-4 rounded-lg border border-chart-8/20">
+                  <p className="text-sm text-muted-foreground mb-1">Total de Perdas</p>
+                  <p className="text-2xl font-bold text-chart-8">
+                    R$ {metricasFinanceiras.totalPerdas.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-muted/50 p-3 rounded-lg border border-border">
+                  <div className="flex items-center gap-2 mb-1">
+                    <PackageX className="w-4 h-4 text-destructive" />
+                    <p className="text-xs text-muted-foreground">Perdas por Vencimento</p>
+                  </div>
+                  <p className="text-lg font-semibold text-destructive">
+                    R$ {metricasFinanceiras.perdasVencimento.toFixed(2)}
+                  </p>
+                </div>
+                
+                <div className="bg-muted/50 p-3 rounded-lg border border-border">
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    <p className="text-xs text-muted-foreground">Perdas por Vendas Negativas</p>
+                  </div>
+                  <p className="text-lg font-semibold text-orange-500">
+                    R$ {metricasFinanceiras.perdasMargem.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-lg border-2 ${
+                metricasFinanceiras.balanco >= 0 
+                  ? 'bg-chart-2/5 border-chart-2' 
+                  : 'bg-chart-8/5 border-chart-8'
+              }`}>
+                <p className="text-sm text-muted-foreground mb-1">Balanço Líquido</p>
+                <p className={`text-3xl font-bold ${
+                  metricasFinanceiras.balanco >= 0 ? 'text-chart-2' : 'text-chart-8'
+                }`}>
+                  {metricasFinanceiras.balanco >= 0 ? '+' : ''}R$ {metricasFinanceiras.balanco.toFixed(2)}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1091,53 +1207,99 @@ export const Relatorios: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="card-shadow">
           <CardHeader>
-            <CardTitle>💎 Top 5 Vacinas por Lucro</CardTitle>
-            <CardDescription>Vacinas mais lucrativas do período</CardDescription>
+            <CardTitle>📈 Top 5 Lotes por Lucro</CardTitle>
+            <CardDescription>Lotes com maior retorno financeiro</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {top5Lucro.map((vaccine, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    />
-                    <div>
-                      <p className="font-medium">{vaccine.nome}</p>
-                      <p className="text-xs text-muted-foreground">{vaccine.quantidade} aplicações</p>
+              {top5Lucro.map((lote, index) => (
+                <div key={index} className="p-3 bg-muted/50 rounded-lg border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <div>
+                        <p className="font-medium">{lote.nomeVacina}</p>
+                        <p className="text-xs text-muted-foreground">Lote #{lote.codigoLote}</p>
+                      </div>
                     </div>
+                    <Badge className="bg-chart-2 text-white">
+                      Vendas
+                    </Badge>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-chart-2">R$ {vaccine.lucro.toFixed(2)}</p>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                      {lote.quantidadeAfetada} aplicações
+                    </p>
+                    <p className="font-bold text-chart-2">R$ {lote.valor.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
+              {top5Lucro.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">Nenhum lucro registrado</p>
+              )}
             </div>
           </CardContent>
         </Card>
 
         <Card className="card-shadow">
           <CardHeader>
-            <CardTitle>📉 Top 5 Vacinas por Perda</CardTitle>
-            <CardDescription>Vacinas com maior perda financeira</CardDescription>
+            <CardTitle>📉 Top 5 Lotes por Perda</CardTitle>
+            <CardDescription>Lotes com maior perda financeira</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {top5Perda.map((vaccine, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    />
-                    <div>
-                      <p className="font-medium">{vaccine.nome}</p>
-                      <p className="text-xs text-muted-foreground">{vaccine.quantidade} aplicações</p>
+              {top5Perda.map((lote, index) => (
+                <div key={index} className="p-3 bg-muted/50 rounded-lg border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <div>
+                        <p className="font-medium">{lote.nomeVacina}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">Lote #{lote.codigoLote}</p>
+                          {lote.tipoPerda === 'vencimento' && lote.dataValidade && (
+                            <p className="text-xs text-muted-foreground">
+                              (Venceu: {new Date(lote.dataValidade).toLocaleDateString('pt-BR')})
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                    <Badge 
+                      variant="destructive"
+                      className={
+                        lote.tipoPerda === 'vencimento' 
+                          ? 'bg-destructive text-destructive-foreground' 
+                          : 'bg-orange-500 text-white'
+                      }
+                    >
+                      {lote.tipoPerda === 'vencimento' ? (
+                        <span className="flex items-center gap-1">
+                          <PackageX className="w-3 h-3" />
+                          Vencido
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Prejuízo
+                        </span>
+                      )}
+                    </Badge>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-chart-8">R$ {vaccine.perda.toFixed(2)}</p>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                      {lote.tipoPerda === 'vencimento' 
+                        ? `${lote.quantidadeAfetada} doses não vendidas`
+                        : `${lote.quantidadeAfetada} aplicações com prejuízo`
+                      }
+                    </p>
+                    <p className="font-bold text-chart-8">R$ {lote.valor.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
