@@ -49,7 +49,7 @@ export const Dashboard: React.FC = () => {
       
       const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesHojeData, agendamentosProximosData, totalAgendamentosData, agendamentosHojeData] = await Promise.all([
         supabase.from('cliente').select('*'),
-        supabase.from('funcionario').select('*'),
+        supabase.from('funcionario').select('*').neq('cargo', 'ADMINISTRADOR'),
         supabase.from('vacina').select('*'),
         supabase.from('lote').select('*'),
         supabase.from('aplicacao').select('idaplicacao').gte('dataaplicacao', `${today}T00:00:00`).lte('dataaplicacao', `${today}T23:59:59`),
@@ -231,18 +231,18 @@ export const Dashboard: React.FC = () => {
     onClick?: () => void;
   }) => (
     <Card 
-      className={`card-shadow smooth-transition ${onClick ? 'hover:shadow-lg hover:scale-[1.02] cursor-pointer' : ''} border border-border/50`}
+      className={`card-shadow smooth-transition border border-border/50 min-h-[140px] flex flex-col justify-between ${onClick ? 'hover:shadow-lg hover:scale-[1.02] cursor-pointer' : ''}`}
       onClick={onClick}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-foreground">{title}</CardTitle>
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Icon className="h-5 w-5 text-primary" />
+        <CardTitle className="text-sm md:text-base font-medium text-foreground">{title}</CardTitle>
+        <div className="p-2.5 md:p-3 bg-primary/10 rounded-xl">
+          <Icon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold text-primary mb-1">{value}</div>
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
+      <CardContent className="flex-1 flex flex-col justify-end">
+        <div className="text-4xl md:text-5xl font-bold text-primary mb-2">{value}</div>
+        <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-1">
           {trend && (
             <TrendingUp className={`h-3 w-3 ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
           )}
@@ -283,60 +283,72 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total de Clientes"
-          value={stats.totalClients}
-          description="Clientes cadastrados"
-          icon={Users}
-          trend="up"
-          onClick={() => navigate('/clientes')}
-        />
-        
-        <StatCard
-          title="Funcionários"
-          value={stats.totalEmployees}
-          description="Equipe ativa"
-          icon={UserCheck}
-          onClick={() => navigate('/funcionarios')}
-        />
-        
-        <StatCard
-          title="Vacinas Disponíveis"
-          value={stats.totalVaccines}
-          description="Tipos de vacina"
-          icon={Syringe}
-          onClick={() => navigate('/vacinas')}
-        />
-        
-        <StatCard
-          title="Vacinações Realizadas Hoje"
-          value={stats.vaccinationsToday}
-          description="Aplicações realizadas hoje • Clique para ver histórico"
-          icon={Activity}
-          onClick={() => navigate('/historico')}
-        />
-        
-        <StatCard
-          title="Total de Agendamentos"
-          value={stats.totalAgendamentos}
-          description="Todos os agendamentos registrados"
-          icon={Calendar}
-          onClick={() => navigate('/agendamentos')}
-        />
-        
-        <StatCard
-          title="Agendamentos para Hoje"
-          value={stats.agendamentosHoje}
-          description="Agendamentos marcados para hoje"
-          icon={Calendar}
-          onClick={() => navigate('/agendamentos')}
-        />
+      <div className="space-y-6">
+        {/* Estatísticas de Pessoas */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Pessoas</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <StatCard
+              title="Total de Clientes"
+              value={stats.totalClients}
+              description="Clientes cadastrados"
+              icon={Users}
+              trend="up"
+              onClick={() => navigate('/clientes')}
+            />
+            
+            <StatCard
+              title="Funcionários Ativos"
+              value={stats.totalEmployees}
+              description="Equipe ativa"
+              icon={UserCheck}
+              onClick={() => navigate('/funcionarios')}
+            />
+          </div>
+        </div>
+
+        {/* Estatísticas de Vacinação */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Vacinação</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-6">
+            <StatCard
+              title="Vacinas Disponíveis"
+              value={stats.totalVaccines}
+              description="Tipos de vacina"
+              icon={Syringe}
+              onClick={() => navigate('/vacinas')}
+            />
+            
+            <StatCard
+              title="Vacinações Hoje"
+              value={stats.vaccinationsToday}
+              description="Aplicações realizadas • Ver histórico"
+              icon={Activity}
+              onClick={() => navigate('/historico')}
+            />
+            
+            <StatCard
+              title="Total de Agendamentos"
+              value={stats.totalAgendamentos}
+              description="Agendamentos com status agendado"
+              icon={Calendar}
+              onClick={() => navigate('/agendamentos')}
+            />
+            
+            <StatCard
+              title="Agendamentos Hoje"
+              value={stats.agendamentosHoje}
+              description="Agendados para hoje"
+              icon={Calendar}
+              onClick={() => navigate('/agendamentos')}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Expiring Batches */}
-        <Card className="card-shadow border border-border/50">
+        <Card className="card-shadow border border-border/50 min-h-[400px] flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <AlertTriangle className="w-5 h-5" />
@@ -346,16 +358,18 @@ export const Dashboard: React.FC = () => {
               Lotes que vencem nos próximos 30 dias
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {stats.expiringBatches.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <AlertTriangle className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  Nenhum lote próximo do vencimento
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
+          <CardContent className="flex-1 overflow-hidden">
+            <div className="h-full max-h-[280px] overflow-y-auto pr-2"
+            >
+              {stats.expiringBatches.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <AlertTriangle className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum lote próximo do vencimento
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
                 {stats.expiringBatches.map((batch) => {
                   const vaccine = vaccines.find(v => v.id === batch.vaccineId);
                   const daysUntilExpiry = Math.ceil(
@@ -385,13 +399,14 @@ export const Dashboard: React.FC = () => {
                     </div>
                   );
                 })}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
         {/* Upcoming Appointments */}
-        <Card className="card-shadow border border-border/50">
+        <Card className="card-shadow border border-border/50 min-h-[400px] flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <Calendar className="w-5 h-5" />
@@ -401,16 +416,18 @@ export const Dashboard: React.FC = () => {
               Próximos 5 agendamentos
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {stats.upcomingAppointments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  Nenhum agendamento próximo
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
+          <CardContent className="flex-1 overflow-hidden">
+            <div className="h-full max-h-[280px] overflow-y-auto pr-2"
+            >
+              {stats.upcomingAppointments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum agendamento próximo
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
                 {stats.upcomingAppointments.map((appointment) => {
                   const getBadgeColor = () => {
                     if (appointment.tempoRestante.includes('min') || appointment.tempoRestante.includes('h')) {
@@ -447,8 +464,9 @@ export const Dashboard: React.FC = () => {
                     </div>
                   );
                 })}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
