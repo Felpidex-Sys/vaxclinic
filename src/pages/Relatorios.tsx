@@ -507,6 +507,29 @@ export const Relatorios: React.FC = () => {
     });
   }, [generateDynamicLabels, vacinacoesNoPeriodo, reportType, selectedMonth, startDate, endDate]);
 
+  const estatisticasAcumuladas = useMemo(() => {
+    if (!aplicacoesAcumuladas.length) return null;
+    
+    const totalAcumulado = aplicacoesAcumuladas[aplicacoesAcumuladas.length - 1]?.acumulado || 0;
+    const primeiro = aplicacoesAcumuladas[0]?.acumulado || 1;
+    const ultimo = aplicacoesAcumuladas[aplicacoesAcumuladas.length - 1]?.acumulado || 0;
+    const taxaCrescimento = primeiro > 0 ? (((ultimo - primeiro) / primeiro) * 100).toFixed(1) : '0.0';
+    
+    const mediaMensal = Math.round(totalAcumulado / aplicacoesAcumuladas.length);
+    
+    const pico = aplicacoesAcumuladas.reduce((max, item, index) => {
+      const mensal = index === 0 ? item.acumulado : item.acumulado - aplicacoesAcumuladas[index - 1].acumulado;
+      return mensal > max.valor ? { mes: item.month, valor: mensal } : max;
+    }, { mes: '', valor: 0 });
+    
+    return {
+      totalAcumulado,
+      taxaCrescimento: parseFloat(taxaCrescimento),
+      mediaMensal,
+      pico
+    };
+  }, [aplicacoesAcumuladas]);
+
   const top5Lucro = vaccines.map(vaccine => {
     const aplicacoesVacina = vacinacoesNoPeriodo.filter(v => {
       const batch = batches.find(b => b.id === v.batchId);
@@ -971,23 +994,97 @@ export const Relatorios: React.FC = () => {
           <CardDescription>Crescimento acumulado ao longo do ano</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={aplicacoesAcumuladas}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Area 
-                  type="monotone" 
-                  dataKey="acumulado" 
-                  stroke="hsl(var(--chart-3))" 
-                  fill="hsl(var(--chart-3))"
-                  fillOpacity={0.6}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Gráfico - 2/3 do espaço */}
+            <div className="lg:col-span-2">
+              <ChartContainer config={chartConfig} className="h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={aplicacoesAcumuladas}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Area 
+                      type="monotone" 
+                      dataKey="acumulado"
+                      name="Total Acumulado"
+                      stroke="hsl(var(--chart-3))" 
+                      fill="hsl(var(--chart-3))"
+                      fillOpacity={0.6}
+                      strokeWidth={2}
+                      dot={{ fill: "hsl(var(--chart-3))", r: 4, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                      activeDot={{ r: 6, strokeWidth: 2 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+            
+            {/* Métricas - 1/3 do espaço */}
+            {estatisticasAcumuladas && (
+              <div className="space-y-4">
+                {/* Total Acumulado */}
+                <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                  <p className="text-sm text-muted-foreground mb-1">Total Acumulado</p>
+                  <p className="text-3xl font-bold text-chart-3">{estatisticasAcumuladas.totalAcumulado}</p>
+                  <p className="text-xs text-muted-foreground mt-1">aplicações no período</p>
+                </div>
+                
+                {/* Taxa de Crescimento */}
+                <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                  <p className="text-sm text-muted-foreground mb-1">Taxa de Crescimento</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold">
+                      {estatisticasAcumuladas.taxaCrescimento > 0 ? '+' : ''}
+                      {estatisticasAcumuladas.taxaCrescimento}%
+                    </p>
+                    {estatisticasAcumuladas.taxaCrescimento > 0 ? (
+                      <TrendingUp className="h-5 w-5 text-green-500" />
+                    ) : estatisticasAcumuladas.taxaCrescimento < 0 ? (
+                      <TrendingDown className="h-5 w-5 text-red-500" />
+                    ) : null}
+                  </div>
+                  {estatisticasAcumuladas.taxaCrescimento > 0 && (
+                    <Badge variant="secondary" className="mt-2 bg-green-500/10 text-green-600 border-green-500/20">
+                      Crescimento
+                    </Badge>
+                  )}
+                  {estatisticasAcumuladas.taxaCrescimento < 0 && (
+                    <Badge variant="secondary" className="mt-2 bg-red-500/10 text-red-600 border-red-500/20">
+                      Declínio
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* Média Mensal */}
+                <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                  <p className="text-sm text-muted-foreground mb-1">Média por Período</p>
+                  <p className="text-2xl font-bold">{estatisticasAcumuladas.mediaMensal}</p>
+                  <p className="text-xs text-muted-foreground mt-1">aplicações em média</p>
+                </div>
+                
+                {/* Pico */}
+                {estatisticasAcumuladas.pico.valor > 0 && (
+                  <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Award className="h-4 w-4 text-chart-3" />
+                      <p className="text-sm text-muted-foreground">Pico de Aplicações</p>
+                    </div>
+                    <p className="text-xl font-bold">{estatisticasAcumuladas.pico.mes}</p>
+                    <Badge variant="secondary" className="mt-2">
+                      {estatisticasAcumuladas.pico.valor} aplicações
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
