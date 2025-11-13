@@ -230,13 +230,18 @@ export const Dashboard: React.FC = () => {
     trend?: 'up' | 'down';
     onClick?: () => void;
   }) => (
-    <Card className="card-shadow smooth-transition hover:shadow-lg cursor-pointer" onClick={onClick}>
+    <Card 
+      className={`card-shadow smooth-transition ${onClick ? 'hover:shadow-lg hover:scale-[1.02] cursor-pointer' : ''} border border-border/50`}
+      onClick={onClick}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-medical-blue" />
+        <CardTitle className="text-sm font-medium text-foreground">{title}</CardTitle>
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-medical-blue">{value}</div>
+        <div className="text-3xl font-bold text-primary mb-1">{value}</div>
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           {trend && (
             <TrendingUp className={`h-3 w-3 ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
@@ -307,8 +312,9 @@ export const Dashboard: React.FC = () => {
         <StatCard
           title="Vacinações Realizadas Hoje"
           value={stats.vaccinationsToday}
-          description="Aplicações de vacinas realizadas hoje"
+          description="Aplicações realizadas hoje • Clique para ver histórico"
           icon={Activity}
+          onClick={() => navigate('/historico')}
         />
         
         <StatCard
@@ -330,10 +336,10 @@ export const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expiring Batches */}
-        <Card className="card-shadow">
+        <Card className="card-shadow border border-border/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-500" />
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <AlertTriangle className="w-5 h-5" />
               Lotes com Validade Próxima
             </CardTitle>
             <CardDescription>
@@ -342,9 +348,12 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             {stats.expiringBatches.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhum lote próximo do vencimento
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <AlertTriangle className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum lote próximo do vencimento
+                </p>
+              </div>
             ) : (
               <div className="space-y-3">
                 {stats.expiringBatches.map((batch) => {
@@ -353,23 +362,23 @@ export const Dashboard: React.FC = () => {
                     (new Date(batch.expirationDate).getTime() - getBrasiliaDate().getTime()) / (1000 * 60 * 60 * 24)
                   );
                   
-                  return (
+                   return (
                     <div 
                       key={batch.id} 
-                      className="flex items-center justify-between p-3 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors"
+                      className="flex items-center justify-between p-4 bg-gradient-to-r from-accent/5 to-accent/10 rounded-lg cursor-pointer hover:from-accent/10 hover:to-accent/20 smooth-transition hover:scale-[1.02] border border-border/50"
                       onClick={() => navigate('/vacinas', { state: { selectedLote: batch.batchNumber } })}
                     >
-                      <div>
-                        <p className="font-medium">{vaccine?.name}</p>
+                      <div className="flex-1">
+                        <p className="font-semibold text-foreground">{vaccine?.name}</p>
                         <p className="text-sm text-muted-foreground">
                           Lote: {batch.batchNumber}
                         </p>
                       </div>
                       <div className="text-right">
-                        <Badge variant={daysUntilExpiry <= 7 ? 'destructive' : 'secondary'}>
+                        <Badge variant={daysUntilExpiry <= 7 ? 'destructive' : 'secondary'} className="mb-1">
                           {daysUntilExpiry} dias
                         </Badge>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {batch.remainingQuantity} unidades
                         </p>
                       </div>
@@ -382,10 +391,10 @@ export const Dashboard: React.FC = () => {
         </Card>
 
         {/* Upcoming Appointments */}
-        <Card className="card-shadow">
+        <Card className="card-shadow border border-border/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-medical-blue" />
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Calendar className="w-5 h-5" />
               Agendamentos Próximos
             </CardTitle>
             <CardDescription>
@@ -394,9 +403,12 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             {stats.upcomingAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhum agendamento próximo
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum agendamento próximo
+                </p>
+              </div>
             ) : (
               <div className="space-y-3">
                 {stats.upcomingAppointments.map((appointment) => {
@@ -409,30 +421,28 @@ export const Dashboard: React.FC = () => {
                     return 'bg-blue-100 text-blue-800';
                   };
                   
-                  return (
+                   return (
                     <div 
                       key={appointment.id} 
-                      className="flex items-center justify-between p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                      className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg cursor-pointer hover:from-primary/10 hover:to-primary/20 smooth-transition hover:scale-[1.02] border border-border/50"
                       onClick={() => navigate('/agendamentos', { state: { selectedAgendamento: parseInt(appointment.id) } })}
                     >
-                      <div>
-                        <p className="font-medium">{appointment.clienteNome}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {appointment.vacinaNome}
-                        </p>
+                      <div className="flex items-start justify-between mb-2">
+                        <p className="font-semibold text-foreground">{appointment.clienteNome}</p>
+                        <Badge className={getBadgeColor()}>
+                          {appointment.tempoRestante}
+                        </Badge>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">
+                      <p className="text-sm text-muted-foreground mb-2">{appointment.vacinaNome}</p>
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">
                           {formatBrasiliaDate(appointment.dataAgendada)} às{' '}
                           {new Date(appointment.dataAgendada).toLocaleTimeString('pt-BR', {
                             timeZone: 'America/Sao_Paulo',
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
-                        </p>
-                        <Badge className={getBadgeColor()}>
-                          {appointment.tempoRestante}
-                        </Badge>
+                        </span>
                       </div>
                     </div>
                   );
