@@ -996,8 +996,8 @@ export const Relatorios: React.FC = () => {
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Gráfico - 2/3 do espaço */}
-            <div className="lg:col-span-2">
-              <ChartContainer config={chartConfig} className="h-[350px]">
+            <div className="lg:col-span-2 mt-4">
+              <ChartContainer config={chartConfig} className="h-[420px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={aplicacoesAcumuladas}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
