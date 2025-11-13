@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Agendamento, Client, Lote, User as UserType } from '@/types';
+import { Agendamento, Client, Lote, User as UserType, Vacina } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
-import { toBrasiliaISOString } from '@/lib/utils';
+import { getBrasiliaDate } from '@/lib/utils';
 
 interface AgendamentoFormProps {
   open: boolean;
@@ -16,6 +16,7 @@ interface AgendamentoFormProps {
   clients: Client[];
   batches: Lote[];
   employees: UserType[];
+  vaccines: Vacina[];
   onSave: (agendamento: Omit<Agendamento, 'idAgendamento'>) => void;
   currentUserId: string;
   editingAgendamento?: Agendamento | null;
@@ -27,6 +28,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
   clients,
   batches,
   employees,
+  vaccines,
   onSave,
   currentUserId,
   editingAgendamento,
@@ -40,6 +42,8 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
     observacoes: editingAgendamento?.observacoes || '',
   });
 
+  const [selectedVacinaId, setSelectedVacinaId] = useState<number | null>(null);
+
   useEffect(() => {
     if (editingAgendamento) {
       setFormData({
@@ -48,13 +52,28 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
         dataAgendada: editingAgendamento.dataAgendada.split('T')[0] + 'T' + editingAgendamento.dataAgendada.split('T')[1].slice(0, 5),
         observacoes: editingAgendamento.observacoes || '',
       });
-    } else if (location.state?.clientCPF) {
-      setFormData(prev => ({
-        ...prev,
-        Cliente_CPF: parseInt(location.state.clientCPF.replace(/\D/g, '')),
-      }));
+
+      // Pré-seleciona a vacina com base no lote do agendamento
+      const lote = batches.find(b => b.numLote === editingAgendamento.Lote_numLote);
+      setSelectedVacinaId(lote?.Vacina_idVacina ?? null);
+    } else {
+      // Vindo da rota de Clientes com CPF preselecionado
+      if (location.state?.clientCPF) {
+        setFormData(prev => ({
+          ...prev,
+          Cliente_CPF: parseInt(location.state.clientCPF.replace(/\D/g, '')),
+        }));
+      }
+      setSelectedVacinaId(null);
     }
-  }, [editingAgendamento, location.state]);
+  }, [editingAgendamento, location.state, batches]);
+
+  const isLoteValido = (lote: Lote) => {
+    // Considera válido até o fim do dia de validade em Brasília
+    const hojeBrt = getBrasiliaDate();
+    const validadeFim = new Date(`${lote.dataValidade}T23:59:59-03:00`);
+    return validadeFim >= hojeBrt;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,11 +87,15 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
       return;
     }
 
+    const localTimestamp = formData.dataAgendada.length === 16
+      ? `${formData.dataAgendada}:00`
+      : formData.dataAgendada;
+
     const agendamento: Omit<Agendamento, 'idAgendamento'> = {
       Cliente_CPF: formData.Cliente_CPF,
       Funcionario_idFuncionario: null,
       Lote_numLote: formData.Lote_numLote,
-      dataAgendada: toBrasiliaISOString(formData.dataAgendada),
+      dataAgendada: localTimestamp, // salva como horário local (sem timezone)
       status: 'AGENDADO',
       observacoes: formData.observacoes,
     };
@@ -85,6 +108,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
       dataAgendada: '',
       observacoes: '',
     });
+    setSelectedVacinaId(null);
     
     toast({
       title: editingAgendamento ? "Agendamento atualizado" : "Agendamento criado",
@@ -131,20 +155,45 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
             </div>
             
             <div>
+              <Label htmlFor="vacina">Vacina *</Label>
+              <Select
+                value={selectedVacinaId ? selectedVacinaId.toString() : ""}
+                onValueChange={(value) => {
+                  setSelectedVacinaId(parseInt(value));
+                  setFormData({ ...formData, Lote_numLote: 0 });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a vacina" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vaccines.map((vac) => (
+                    <SelectItem key={vac.idVacina} value={vac.idVacina.toString()}>
+                      {vac.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
               <Label htmlFor="lote">Lote da Vacina *</Label>
               <Select 
                 value={formData.Lote_numLote > 0 ? formData.Lote_numLote.toString() : ""} 
                 onValueChange={(value) => setFormData({ ...formData, Lote_numLote: parseInt(value) })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o lote" />
+                  <SelectValue placeholder={selectedVacinaId ? "Selecione o lote" : "Selecione a vacina primeiro"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {batches.filter(b => b.quantidadeDisponivel > 0).map((batch) => (
-                    <SelectItem key={batch.numLote} value={batch.numLote.toString()}>
-                      {batch.codigoLote} - {batch.quantidadeDisponivel} doses disponíveis
-                    </SelectItem>
-                  ))}
+                  {batches
+                    .filter(b => selectedVacinaId ? b.Vacina_idVacina === selectedVacinaId : false)
+                    .filter(b => b.quantidadeDisponivel > 0 && isLoteValido(b))
+                    .map((batch) => (
+                      <SelectItem key={batch.numLote} value={batch.numLote.toString()}>
+                        {batch.codigoLote} - {batch.quantidadeDisponivel} doses disponíveis (Val: {batch.dataValidade})
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

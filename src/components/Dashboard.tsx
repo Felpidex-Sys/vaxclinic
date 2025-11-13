@@ -43,7 +43,7 @@ export const Dashboard: React.FC = () => {
   const fetchData = async () => {
     try {
       // Get today's date in Brasília timezone
-      const today = getBrasiliaDate().toISOString().split('T')[0];
+      const d = getBrasiliaDate(); const pad = (n: number) => String(n).padStart(2,'0'); const today = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
       
       const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesHojeData, agendamentosProximosData] = await Promise.all([
         supabase.from('cliente').select('*'),
@@ -51,7 +51,12 @@ export const Dashboard: React.FC = () => {
         supabase.from('vacina').select('*'),
         supabase.from('lote').select('*'),
         supabase.from('aplicacao').select('idaplicacao').gte('dataaplicacao', `${today}T00:00:00`).lte('dataaplicacao', `${today}T23:59:59`),
-        supabase.from('agendamento').select('*').eq('status', 'AGENDADO').gte('dataagendada', toBrasiliaISOString()).order('dataagendada', { ascending: true }).limit(5),
+        supabase
+          .from('agendamento')
+          .select('*')
+          .eq('status', 'AGENDADO')
+          .order('dataagendada', { ascending: true })
+          .limit(50),
       ]);
 
       if (clientsData.error) throw clientsData.error;
@@ -120,8 +125,19 @@ export const Dashboard: React.FC = () => {
       });
 
       // Buscar dados adicionais para agendamentos próximos
+      const parseAsBrasilia = (ts: string) => {
+        // Trata timestamps do banco (sem timezone) como horário de Brasília
+        if (/Z|[+-]\d{2}:\d{2}$/.test(ts)) return new Date(ts);
+        return new Date(`${ts}-03:00`);
+      };
+
+      const agoraBRT = getBrasiliaDate();
+      const proximosAg = (agendamentosProximosData.data || [])
+        .filter((ag) => parseAsBrasilia(ag.dataagendada) >= agoraBRT)
+        .slice(0, 5);
+
       const upcomingAppointments = await Promise.all(
-        (agendamentosProximosData.data || []).map(async (ag) => {
+        proximosAg.map(async (ag) => {
           const [clientData, loteData] = await Promise.all([
             supabase.from('cliente').select('nomecompleto').eq('cpf', ag.cliente_cpf).single(),
             supabase.from('lote').select('vacina_idvacina').eq('numlote', ag.lote_numlote).single(),
@@ -137,24 +153,22 @@ export const Dashboard: React.FC = () => {
             vacinaNome = vacinaData.data?.nome || vacinaNome;
           }
 
-          const agora = getBrasiliaDate();
-          const agendamento = new Date(ag.dataagendada);
-          const diffMs = agendamento.getTime() - agora.getTime();
-          
+          const agendamento = parseAsBrasilia(ag.dataagendada);
+          const diffMs = agendamento.getTime() - agoraBRT.getTime();
           const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
           const horas = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
           const minutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-          
+
           let tempoRestante = '';
           let urgente = false;
-          
+
           if (dias > 0) {
             tempoRestante = `${dias} dia${dias > 1 ? 's' : ''}`;
           } else if (horas > 0) {
             tempoRestante = `${horas}h${minutos > 0 ? `${minutos}min` : ''}`;
             urgente = horas < 24;
           } else {
-            tempoRestante = `${minutos}min`;
+            tempoRestante = `${Math.max(minutos, 0)}min`;
             urgente = true;
           }
 

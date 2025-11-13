@@ -17,7 +17,7 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { Agendamento, Client, VaccineBatch, User as UserType, Lote } from '@/types';
+import { Agendamento, Client, VaccineBatch, User as UserType, Lote, Vacina } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { AgendamentoForm } from '@/components/forms/AgendamentoForm';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +31,7 @@ export const Agendamentos: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [batches, setBatches] = useState<Lote[]>([]);
   const [employees, setEmployees] = useState<UserType[]>([]);
+  const [vaccines, setVaccines] = useState<Vacina[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,17 +51,19 @@ export const Agendamentos: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [agendamentosData, clientsData, lotesData, employeesData] = await Promise.all([
+      const [agendamentosData, clientsData, lotesData, employeesData, vacinasData] = await Promise.all([
         supabase.from('agendamento').select('*').order('dataagendada', { ascending: true }),
         supabase.from('cliente').select('*'),
         supabase.from('lote').select('*'),
         supabase.from('funcionario').select('*'),
+        supabase.from('vacina').select('*'),
       ]);
 
       if (agendamentosData.error) throw agendamentosData.error;
       if (clientsData.error) throw clientsData.error;
       if (lotesData.error) throw lotesData.error;
       if (employeesData.error) throw employeesData.error;
+      if (vacinasData.error) throw vacinasData.error;
 
       const mappedAgendamentos: Agendamento[] = (agendamentosData.data || []).map(a => ({
         idAgendamento: a.idagendamento,
@@ -105,10 +108,22 @@ export const Agendamentos: React.FC = () => {
         createdAt: e.dataadmissao || toBrasiliaISOString(),
       }));
 
+      const mappedVacinas: Vacina[] = (vacinasData.data || []).map(v => ({
+        idVacina: v.idvacina,
+        nome: v.nome,
+        fabricante: v.fabricante || '',
+        categoria: v.categoria,
+        quantidadeDoses: v.quantidadedoses,
+        intervaloDoses: v.intervalodoses,
+        descricao: v.descricao || '',
+        status: v.status,
+      }));
+
       setAgendamentos(mappedAgendamentos);
       setClients(mappedClients);
       setBatches(mappedLotes);
       setEmployees(mappedEmployees);
+      setVaccines(mappedVacinas);
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
       toast({
@@ -509,6 +524,7 @@ export const Agendamentos: React.FC = () => {
         clients={clients}
         batches={batches}
         employees={employees}
+        vaccines={vaccines}
         onSave={handleSaveAgendamento}
         currentUserId="1"
         editingAgendamento={editingAgendamento}
