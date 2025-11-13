@@ -97,6 +97,22 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
       return;
     }
     
+    // Validar se a data da próxima dose é futura
+    if (formData.nextDueDate) {
+      const nextDate = new Date(formData.nextDueDate);
+      const today = getBrasiliaDate();
+      today.setHours(0, 0, 0, 0);
+      
+      if (nextDate <= today) {
+        toast({
+          title: "⚠ Data inválida",
+          description: "A data da próxima dose deve ser uma data futura.",
+          variant: "default",
+        });
+        return;
+      }
+    }
+    
     setFieldErrors({});
 
     try {
@@ -117,6 +133,58 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
         });
 
       if (aplicacaoError) throw aplicacaoError;
+
+      // Se foi informada uma data para a próxima dose, criar agendamento automático
+      let agendamentoCriado = false;
+      if (formData.nextDueDate) {
+        // Converter a data para o formato correto (incluir hora)
+        const nextDoseDate = new Date(formData.nextDueDate);
+        nextDoseDate.setHours(9, 0, 0, 0); // Agendar para 9h da manhã por padrão
+        const nextDoseDateISO = toBrasiliaISOString(nextDoseDate);
+        
+        // Buscar lote disponível da mesma vacina
+        const { data: batchData } = await supabase
+          .from('lote')
+          .select('quantidadedisponivel, numlote')
+          .eq('vacina_idvacina', parseInt(formData.vaccineId))
+          .gt('quantidadedisponivel', 0)
+          .gte('datavalidade', nextDoseDateISO)
+          .order('datavalidade', { ascending: false })
+          .limit(1)
+          .single();
+        
+        // Se houver lote disponível, criar o agendamento
+        if (batchData) {
+          const { error: agendamentoError } = await supabase
+            .from('agendamento')
+            .insert({
+              cliente_cpf: formData.clientId,
+              lote_numlote: batchData.numlote,
+              dataagendada: nextDoseDateISO,
+              funcionario_idfuncionario: null, // Deixar null para ser atribuído depois
+              observacoes: `Agendamento automático para dose ${formData.doseNumber + 1}. Criado após aplicação da dose ${formData.doseNumber}.`,
+              status: 'AGENDADO'
+            });
+          
+          if (!agendamentoError) {
+            agendamentoCriado = true;
+            toast({
+              title: "Agendamento criado",
+              description: `Próxima dose (${formData.doseNumber + 1}) agendada para ${new Date(formData.nextDueDate).toLocaleDateString('pt-BR')}.`,
+              variant: "default",
+            });
+          } else {
+            console.warn('Erro ao criar agendamento automático:', agendamentoError);
+          }
+        } else {
+          // Se não houver lote disponível, apenas avisar
+          toast({
+            title: "⚠ Atenção",
+            description: "Vacina aplicada, mas não há lotes disponíveis para agendar a próxima dose. Cadastre um novo lote.",
+            variant: "default",
+          });
+        }
+      }
 
       // O estoque é atualizado automaticamente pelo trigger ao inserir a aplicação
       
@@ -141,7 +209,9 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
       
       toast({
         title: "Vacina aplicada",
-        description: "A vacinação foi registrada com sucesso no banco de dados.",
+        description: agendamentoCriado 
+          ? `Vacinação registrada e próxima dose (${formData.doseNumber + 1}) agendada automaticamente!`
+          : "A vacinação foi registrada com sucesso no banco de dados.",
       });
     } catch (error: any) {
       console.error('Erro ao aplicar vacina:', error);
@@ -293,15 +363,21 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
               />
             </div>
             
-            <div>
-              <Label htmlFor="nextDueDate">Próxima Dose (opcional)</Label>
-              <Input
-                id="nextDueDate"
-                type="date"
-                value={formData.nextDueDate}
-                onChange={(e) => setFormData({ ...formData, nextDueDate: e.target.value })}
-              />
-            </div>
+              <div>
+                <Label htmlFor="nextDueDate" className="flex items-center gap-2">
+                  Próxima Dose (opcional)
+                  <span className="text-xs text-muted-foreground">
+                    📅 Se informado, um agendamento será criado automaticamente
+                  </span>
+                </Label>
+                <Input
+                  id="nextDueDate"
+                  type="date"
+                  value={formData.nextDueDate}
+                  onChange={(e) => setFormData({ ...formData, nextDueDate: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
           </div>
           
           <div>
