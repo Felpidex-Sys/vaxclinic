@@ -49,7 +49,7 @@ export const Dashboard: React.FC = () => {
       
       const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesHojeData, agendamentosProximosData, totalAgendamentosData, agendamentosHojeData] = await Promise.all([
         supabase.from('cliente').select('*'),
-        supabase.from('funcionario').select('*').neq('cargo', 'ADMINISTRADOR'),
+        supabase.from('funcionario').select('*').neq('cargo', 'ADMINISTRADOR').eq('status', 'ATIVO'),
         supabase.from('vacina').select('*'),
         supabase.from('lote').select('*'),
         supabase.from('aplicacao').select('idaplicacao').gte('dataaplicacao', `${today}T00:00:00`).lte('dataaplicacao', `${today}T23:59:59`),
@@ -195,7 +195,7 @@ export const Dashboard: React.FC = () => {
 
       setStats({
         totalClients: mappedClients.length,
-        totalEmployees: mappedEmployees.filter(e => e.active).length,
+        totalEmployees: mappedEmployees.length,
         totalVaccines: mappedVaccines.length,
         vaccinationsToday: aplicacoesHojeData.data?.length || 0,
         totalAgendamentos: totalAgendamentosData.count || 0,
@@ -231,18 +231,18 @@ export const Dashboard: React.FC = () => {
     onClick?: () => void;
   }) => (
     <Card 
-      className={`card-shadow smooth-transition border border-border/50 min-h-[140px] flex flex-col justify-between ${onClick ? 'hover:shadow-lg hover:scale-[1.02] cursor-pointer' : ''}`}
+      className={`card-shadow smooth-transition border border-border/50 min-h-[120px] flex flex-col justify-between ${onClick ? 'hover:shadow-lg hover:scale-[1.02] cursor-pointer' : ''}`}
       onClick={onClick}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm md:text-base font-medium text-foreground">{title}</CardTitle>
-        <div className="p-2.5 md:p-3 bg-primary/10 rounded-xl">
-          <Icon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+        <CardTitle className="text-xs md:text-sm font-medium text-foreground line-clamp-2">{title}</CardTitle>
+        <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
+          <Icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-end">
-        <div className="text-4xl md:text-5xl font-bold text-primary mb-2">{value}</div>
-        <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-1">
+        <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-primary mb-1">{value}</div>
+        <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-2 flex items-center gap-1">
           {trend && (
             <TrendingUp className={`h-3 w-3 ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
           )}
@@ -282,68 +282,56 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="space-y-6">
-        {/* Estatísticas de Pessoas */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Pessoas</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <StatCard
-              title="Total de Clientes"
-              value={stats.totalClients}
-              description="Clientes cadastrados"
-              icon={Users}
-              trend="up"
-              onClick={() => navigate('/clientes')}
-            />
-            
-            <StatCard
-              title="Funcionários Ativos"
-              value={stats.totalEmployees}
-              description="Equipe ativa"
-              icon={UserCheck}
-              onClick={() => navigate('/funcionarios')}
-            />
-          </div>
-        </div>
-
-        {/* Estatísticas de Vacinação */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Vacinação</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-6">
-            <StatCard
-              title="Vacinas Disponíveis"
-              value={stats.totalVaccines}
-              description="Tipos de vacina"
-              icon={Syringe}
-              onClick={() => navigate('/vacinas')}
-            />
-            
-            <StatCard
-              title="Vacinações Hoje"
-              value={stats.vaccinationsToday}
-              description="Aplicações realizadas • Ver histórico"
-              icon={Activity}
-              onClick={() => navigate('/historico')}
-            />
-            
-            <StatCard
-              title="Total de Agendamentos"
-              value={stats.totalAgendamentos}
-              description="Agendamentos com status agendado"
-              icon={Calendar}
-              onClick={() => navigate('/agendamentos')}
-            />
-            
-            <StatCard
-              title="Agendamentos Hoje"
-              value={stats.agendamentosHoje}
-              description="Agendados para hoje"
-              icon={Calendar}
-              onClick={() => navigate('/agendamentos')}
-            />
-          </div>
-        </div>
+      {/* Stats Grid - 6 cards em linha */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+        <StatCard
+          title="Total de Clientes"
+          value={stats.totalClients}
+          description="Clientes cadastrados"
+          icon={Users}
+          trend="up"
+          onClick={() => navigate('/clientes')}
+        />
+        
+        <StatCard
+          title="Funcionários Ativos"
+          value={stats.totalEmployees}
+          description="Equipe ativa"
+          icon={UserCheck}
+          onClick={() => navigate('/funcionarios')}
+        />
+        
+        <StatCard
+          title="Vacinas Disponíveis"
+          value={stats.totalVaccines}
+          description="Tipos de vacina"
+          icon={Syringe}
+          onClick={() => navigate('/vacinas')}
+        />
+        
+        <StatCard
+          title="Vacinações Hoje"
+          value={stats.vaccinationsToday}
+          description="Aplicações realizadas"
+          icon={Activity}
+          onClick={() => navigate('/historico')}
+        />
+        
+        <StatCard
+          title="Total de Agendamentos"
+          value={stats.totalAgendamentos}
+          description="Agendamentos ativos"
+          icon={Calendar}
+          onClick={() => navigate('/agendamentos')}
+        />
+        
+        <StatCard
+          title="Agendamentos Hoje"
+          value={stats.agendamentosHoje}
+          description="Agendados para hoje"
+          icon={Calendar}
+          onClick={() => navigate('/agendamentos')}
+        />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
