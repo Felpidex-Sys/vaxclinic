@@ -84,6 +84,7 @@ export const Historico: React.FC = () => {
   const fetchHistorico = async () => {
     setLoading(true);
     try {
+      // Otimização: usar JOIN para buscar tudo em uma única query
       const { data, error } = await supabase
         .from('aplicacao')
         .select(`
@@ -93,91 +94,41 @@ export const Historico: React.FC = () => {
           reacoesadversas,
           observacoes,
           cliente_cpf,
-          funcionario_idfuncionario,
-          agendamento_idagendamento,
-          lote_numlote
+          cliente:cliente_cpf (
+            nomecompleto,
+            cpf,
+            alergias
+          ),
+          funcionario:funcionario_idfuncionario (
+            nomecompleto
+          ),
+          lote:lote_numlote (
+            codigolote,
+            vacina:vacina_idvacina (
+              nome,
+              fabricante
+            )
+          )
         `)
         .order('dataaplicacao', { ascending: false });
 
       if (error) throw error;
 
-      // Buscar informações adicionais
-      const enrichedData = await Promise.all(
-        (data || []).map(async (aplicacao) => {
-          // Buscar cliente
-          const { data: clienteData } = await supabase
-            .from('cliente')
-            .select('nomecompleto, cpf, alergias')
-            .eq('cpf', aplicacao.cliente_cpf)
-            .maybeSingle();
-
-          // Buscar funcionário
-          const { data: funcionarioData } = await supabase
-            .from('funcionario')
-            .select('nomecompleto')
-            .eq('idfuncionario', aplicacao.funcionario_idfuncionario)
-            .maybeSingle();
-
-          // Buscar informações da vacina e lote
-          let vacinaInfo = { nome: 'N/A', fabricante: 'N/A', codigolote: 'N/A' };
-          
-          // Tentar buscar lote diretamente da aplicação primeiro
-          let loteNumero = aplicacao.lote_numlote;
-          
-          // Se não tiver lote direto, buscar através do agendamento
-          if (!loteNumero && aplicacao.agendamento_idagendamento) {
-            const { data: agendamentoData } = await supabase
-              .from('agendamento')
-              .select('lote_numlote')
-              .eq('idagendamento', aplicacao.agendamento_idagendamento)
-              .maybeSingle();
-            
-            if (agendamentoData) {
-              loteNumero = agendamentoData.lote_numlote;
-            }
-          }
-          
-          // Buscar informações do lote e vacina
-          if (loteNumero) {
-            const { data: loteData } = await supabase
-              .from('lote')
-              .select('codigolote, vacina_idvacina')
-              .eq('numlote', loteNumero)
-              .maybeSingle();
-
-            if (loteData) {
-              const { data: vacinaData } = await supabase
-                .from('vacina')
-                .select('nome, fabricante')
-                .eq('idvacina', loteData.vacina_idvacina)
-                .maybeSingle();
-
-              if (vacinaData) {
-                vacinaInfo = {
-                  nome: vacinaData.nome,
-                  fabricante: vacinaData.fabricante || 'N/A',
-                  codigolote: loteData.codigolote,
-                };
-              }
-            }
-          }
-
-          return {
-            idaplicacao: aplicacao.idaplicacao,
-            dataaplicacao: aplicacao.dataaplicacao,
-            dose: aplicacao.dose,
-            cliente_nome: clienteData?.nomecompleto || 'N/A',
-            cliente_cpf: aplicacao.cliente_cpf,
-            funcionario_nome: funcionarioData?.nomecompleto || 'N/A',
-            vacina_nome: vacinaInfo.nome,
-            fabricante: vacinaInfo.fabricante,
-            codigolote: vacinaInfo.codigolote,
-            reacoesadversas: aplicacao.reacoesadversas,
-            observacoes: aplicacao.observacoes,
-            cliente_alergias: clienteData?.alergias,
-          };
-        })
-      );
+      // Mapear dados do JOIN para o formato esperado
+      const enrichedData: HistoricoAplicacao[] = (data || []).map((aplicacao: any) => ({
+        idaplicacao: aplicacao.idaplicacao,
+        dataaplicacao: aplicacao.dataaplicacao,
+        dose: aplicacao.dose || 0,
+        cliente_nome: aplicacao.cliente?.nomecompleto || 'N/A',
+        cliente_cpf: aplicacao.cliente_cpf,
+        funcionario_nome: aplicacao.funcionario?.nomecompleto || 'N/A',
+        vacina_nome: aplicacao.lote?.vacina?.nome || 'N/A',
+        fabricante: aplicacao.lote?.vacina?.fabricante || 'N/A',
+        codigolote: aplicacao.lote?.codigolote || 'N/A',
+        reacoesadversas: aplicacao.reacoesadversas,
+        observacoes: aplicacao.observacoes,
+        cliente_alergias: aplicacao.cliente?.alergias,
+      }));
 
       setHistorico(enrichedData);
       calculateStats(enrichedData);

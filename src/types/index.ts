@@ -144,6 +144,8 @@ export interface DashboardStats {
   totalEmployees: number;
   totalVaccines: number;
   vaccinationsToday: number;
+  totalAgendamentos: number;
+  agendamentosHoje: number;
   expiringBatches: VaccineBatch[];
   upcomingAppointments: AgendamentoProximo[];
 }

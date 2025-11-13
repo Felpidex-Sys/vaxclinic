@@ -32,6 +32,8 @@ export const Dashboard: React.FC = () => {
     totalEmployees: 0,
     totalVaccines: 0,
     vaccinationsToday: 0,
+    totalAgendamentos: 0,
+    agendamentosHoje: 0,
     expiringBatches: [],
     upcomingAppointments: []
   });
@@ -45,7 +47,7 @@ export const Dashboard: React.FC = () => {
       // Get today's date in Brasília timezone
       const d = getBrasiliaDate(); const pad = (n: number) => String(n).padStart(2,'0'); const today = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
       
-      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesHojeData, agendamentosProximosData] = await Promise.all([
+      const [clientsData, employeesData, vaccinesData, batchesData, aplicacoesHojeData, agendamentosProximosData, totalAgendamentosData, agendamentosHojeData] = await Promise.all([
         supabase.from('cliente').select('*'),
         supabase.from('funcionario').select('*'),
         supabase.from('vacina').select('*'),
@@ -57,6 +59,13 @@ export const Dashboard: React.FC = () => {
           .eq('status', 'AGENDADO')
           .order('dataagendada', { ascending: true })
           .limit(50),
+        supabase.from('agendamento').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('agendamento')
+          .select('idagendamento')
+          .eq('status', 'AGENDADO')
+          .gte('dataagendada', `${today}T00:00:00`)
+          .lte('dataagendada', `${today}T23:59:59`),
       ]);
 
       if (clientsData.error) throw clientsData.error;
@@ -188,9 +197,11 @@ export const Dashboard: React.FC = () => {
         totalClients: mappedClients.length,
         totalEmployees: mappedEmployees.length,
         totalVaccines: mappedVaccines.length,
-        vaccinationsToday: vacinacoesHoje,
+        vaccinationsToday: aplicacoesHojeData.data?.length || 0,
+        totalAgendamentos: totalAgendamentosData.count || 0,
+        agendamentosHoje: agendamentosHojeData.data?.length || 0,
         expiringBatches: lotesVencendo,
-        upcomingAppointments,
+        upcomingAppointments: upcomingAppointments
       });
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -294,11 +305,26 @@ export const Dashboard: React.FC = () => {
         />
         
         <StatCard
-          title="Vacinações Hoje"
+          title="Vacinações Realizadas Hoje"
           value={stats.vaccinationsToday}
-          description="Aplicadas hoje"
+          description="Aplicações de vacinas realizadas hoje"
           icon={Activity}
-          trend="up"
+        />
+        
+        <StatCard
+          title="Total de Agendamentos"
+          value={stats.totalAgendamentos}
+          description="Todos os agendamentos registrados"
+          icon={Calendar}
+          onClick={() => navigate('/agendamentos')}
+        />
+        
+        <StatCard
+          title="Agendamentos para Hoje"
+          value={stats.agendamentosHoje}
+          description="Agendamentos marcados para hoje"
+          icon={Calendar}
+          onClick={() => navigate('/agendamentos')}
         />
       </div>
 
@@ -328,7 +354,11 @@ export const Dashboard: React.FC = () => {
                   );
                   
                   return (
-                    <div key={batch.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                    <div 
+                      key={batch.id} 
+                      className="flex items-center justify-between p-3 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors"
+                      onClick={() => navigate('/vacinas', { state: { selectedLote: batch.batchNumber } })}
+                    >
                       <div>
                         <p className="font-medium">{vaccine?.name}</p>
                         <p className="text-sm text-muted-foreground">
@@ -380,7 +410,11 @@ export const Dashboard: React.FC = () => {
                   };
                   
                   return (
-                    <div key={appointment.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div 
+                      key={appointment.id} 
+                      className="flex items-center justify-between p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                      onClick={() => navigate('/agendamentos', { state: { selectedAgendamento: parseInt(appointment.id) } })}
+                    >
                       <div>
                         <p className="font-medium">{appointment.clienteNome}</p>
                         <p className="text-sm text-muted-foreground">
