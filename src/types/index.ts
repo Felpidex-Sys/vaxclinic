@@ -113,6 +113,8 @@ export interface VaccineBatch {
   remainingQuantity: number;
   manufacturingDate: string;
   expirationDate: string;
+  purchasePrice?: number;
+  salePrice?: number;
   createdAt: string;
 }
 
