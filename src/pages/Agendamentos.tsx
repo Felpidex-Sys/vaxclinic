@@ -263,6 +263,15 @@ export const Agendamentos: React.FC = () => {
       // Data e hora atuais no formato ISO (horário de Brasília)
       const dataHoraAtual = toBrasiliaISOString();
       
+      // Buscar os preços do lote antes de criar a aplicação
+      const { data: loteData, error: loteError } = await supabase
+        .from('lote')
+        .select('precocompra, precovenda')
+        .eq('numlote', confirmingAgendamento.Lote_numLote)
+        .single();
+
+      if (loteError) throw loteError;
+      
       // Criar registro de aplicação (trigger do banco atualiza status para REALIZADO automaticamente)
       const { error: aplicacaoError } = await supabase
         .from('aplicacao')
@@ -271,7 +280,10 @@ export const Agendamentos: React.FC = () => {
           funcionario_idfuncionario: parseInt(selectedEmployee),
           cliente_cpf: confirmingAgendamento.Cliente_CPF.toString(),
           agendamento_idagendamento: confirmingAgendamento.idAgendamento,
+          lote_numlote: confirmingAgendamento.Lote_numLote,
           observacoes: confirmingAgendamento.observacoes,
+          precocompra: loteData.precocompra,
+          precovenda: loteData.precovenda,
         });
 
       if (aplicacaoError) throw aplicacaoError;

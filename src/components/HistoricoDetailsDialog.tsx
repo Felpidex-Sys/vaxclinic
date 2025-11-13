@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Syringe, Calendar, FileText, AlertCircle } from 'lucide-react';
+import { User, Syringe, Calendar, FileText, AlertCircle, DollarSign } from 'lucide-react';
 import { formatBrasiliaDateTime } from '@/lib/utils';
 
 interface HistoricoAplicacao {
@@ -24,6 +24,8 @@ interface HistoricoAplicacao {
   reacoesadversas?: string;
   observacoes?: string;
   cliente_alergias?: string;
+  precocompra?: number;
+  precovenda?: number;
 }
 
 interface HistoricoDetailsDialogProps {
@@ -139,6 +141,47 @@ export const HistoricoDetailsDialog: React.FC<HistoricoDetailsDialogProps> = ({
           </div>
 
           <Separator />
+
+          {/* Seção Financeira */}
+          {(record.precocompra !== undefined && record.precovenda !== undefined) && (
+            <>
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-lg">Informações Financeiras</h3>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Preço de Compra:</span>
+                    <span className="font-medium">
+                      {record.precocompra ? 
+                        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(record.precocompra) 
+                        : 'R$ 0,00'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Preço de Venda:</span>
+                    <span className="font-medium">
+                      {record.precovenda ? 
+                        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(record.precovenda)
+                        : 'R$ 0,00'}
+                    </span>
+                  </div>
+                  {record.precocompra !== undefined && record.precovenda !== undefined && (
+                    <div className="flex justify-between pt-2 border-t">
+                      <span className="text-muted-foreground font-medium">Margem:</span>
+                      <span className={`font-bold ${(record.precovenda - record.precocompra) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(record.precovenda - record.precocompra)}
+                        {(record.precovenda - record.precocompra) >= 0 ? ' (lucro)' : ' (prejuízo)'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+            </>
+          )}
 
           {/* Seção Observações */}
           <div>
