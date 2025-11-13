@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { 
   LineChart, 
   Line, 
@@ -55,6 +56,8 @@ export const Relatorios: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedVaccine, setSelectedVaccine] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   
   const [compareMode, setCompareMode] = useState(false);
   const [vaccine1, setVaccine1] = useState<string>('');
@@ -63,6 +66,22 @@ export const Relatorios: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (reportType === 'custom' && startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (end < start) {
+        toast({
+          title: "Erro de validação",
+          description: "A data de fim deve ser posterior à data de início.",
+          variant: "destructive",
+        });
+        setEndDate('');
+      }
+    }
+  }, [startDate, endDate, reportType, toast]);
 
   const fetchData = async () => {
     try {
@@ -148,15 +167,88 @@ export const Relatorios: React.FC = () => {
 
   const filterByPeriod = (dateString: string) => {
     const date = new Date(dateString);
-    const yearMatch = date.getFullYear().toString() === selectedYear;
     
+    // Filtro por período personalizado
+    if (reportType === 'custom') {
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        return date >= start && date <= end;
+      }
+      return true;
+    }
+    
+    // Filtro anual
+    const yearMatch = date.getFullYear().toString() === selectedYear;
     if (reportType === 'yearly') {
       return yearMatch;
-    } else {
-      if (selectedMonth === 'all') return yearMatch;
-      return yearMatch && date.getMonth().toString() === selectedMonth;
     }
+    
+    // Filtro mensal
+    if (selectedMonth === 'all') return yearMatch;
+    return yearMatch && date.getMonth().toString() === selectedMonth;
   };
+
+  const generateDynamicLabels = useMemo(() => {
+    // Modo ANUAL: retorna meses (Jan-Dez)
+    if (reportType === 'yearly') {
+      return monthNames;
+    }
+    
+    // Modo MENSAL: retorna dias do mês selecionado
+    if (reportType === 'monthly' && selectedMonth !== 'all') {
+      const year = parseInt(selectedYear);
+      const month = parseInt(selectedMonth);
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
+    }
+    
+    // Modo PERÍODO PERSONALIZADO
+    if (reportType === 'custom' && startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Se período <= 31 dias: mostrar por dia
+      if (diffDays <= 31) {
+        const labels: string[] = [];
+        const current = new Date(start);
+        while (current <= end) {
+          labels.push(`${current.getDate()}/${current.getMonth() + 1}`);
+          current.setDate(current.getDate() + 1);
+        }
+        return labels;
+      }
+      
+      // Se período <= 12 meses: mostrar por mês
+      if (diffDays <= 365) {
+        const labels: string[] = [];
+        const current = new Date(start);
+        while (current <= end) {
+          labels.push(`${monthNames[current.getMonth()]}/${current.getFullYear().toString().slice(2)}`);
+          current.setMonth(current.getMonth() + 1);
+        }
+        return labels;
+      }
+      
+      // Se período > 12 meses: mostrar por ano
+      const labels: string[] = [];
+      const current = new Date(start);
+      while (current <= end) {
+        if (!labels.includes(current.getFullYear().toString())) {
+          labels.push(current.getFullYear().toString());
+        }
+        current.setFullYear(current.getFullYear() + 1);
+      }
+      return labels;
+    }
+    
+    // Fallback: retorna meses
+    return monthNames;
+  }, [reportType, selectedYear, selectedMonth, startDate, endDate]);
 
   const vacinacoesNoPeriodo = useMemo(() => {
     return vaccinations.filter(v => {
@@ -169,7 +261,7 @@ export const Relatorios: React.FC = () => {
       
       return true;
     });
-  }, [vaccinations, selectedYear, selectedMonth, reportType, selectedVaccine, batches]);
+  }, [vaccinations, selectedYear, selectedMonth, reportType, selectedVaccine, batches, startDate, endDate]);
 
   const agendamentosNoPeriodo = agendamentos.filter(a => 
     a.status === 'AGENDADO' && filterByPeriod(a.dataagendada)
@@ -185,42 +277,116 @@ export const Relatorios: React.FC = () => {
     return filterByPeriod(b.expirationDate) && expDate < today;
   }).length;
 
-  const vaccinationsByMonth = monthNames.map((month, index) => {
-    const count = vacinacoesNoPeriodo.filter(v => {
-      const date = new Date(v.applicationDate);
-      return date.getMonth() === index;
-    }).length;
-    return { month, count };
-  });
-
-  const profitLossByMonth = monthNames.map((month, index) => {
-    const monthVaccinations = vacinacoesNoPeriodo.filter(v => {
-      const date = new Date(v.applicationDate);
-      return date.getMonth() === index;
-    });
-
-    let profit = 0;
-    let loss = 0;
-
-    monthVaccinations.forEach(vaccination => {
-      const batch = batches.find(b => b.id === vaccination.batchId);
-      if (batch && batch.purchasePrice && batch.salePrice) {
-        const margem = batch.salePrice - batch.purchasePrice;
+  const vaccinationsByMonth = useMemo(() => {
+    return generateDynamicLabels.map((label, index) => {
+      const count = vacinacoesNoPeriodo.filter(v => {
+        const date = new Date(v.applicationDate);
         
-        if (margem > 0) {
-          profit += margem;
-        } else {
-          loss += Math.abs(margem);
+        // Modo ANUAL: filtrar por mês
+        if (reportType === 'yearly') {
+          return date.getMonth() === index;
         }
-      }
+        
+        // Modo MENSAL: filtrar por dia do mês
+        if (reportType === 'monthly' && selectedMonth !== 'all') {
+          return date.getDate() === index + 1;
+        }
+        
+        // Modo PERÍODO PERSONALIZADO
+        if (reportType === 'custom' && startDate && endDate) {
+          const diffDays = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Por dia
+          if (diffDays <= 31) {
+            const targetDate = new Date(startDate);
+            targetDate.setDate(targetDate.getDate() + index);
+            return date.getDate() === targetDate.getDate() && 
+                   date.getMonth() === targetDate.getMonth();
+          }
+          
+          // Por mês
+          if (diffDays <= 365) {
+            const targetDate = new Date(startDate);
+            targetDate.setMonth(targetDate.getMonth() + index);
+            return date.getMonth() === targetDate.getMonth() && 
+                   date.getFullYear() === targetDate.getFullYear();
+          }
+          
+          // Por ano
+          const targetYear = new Date(startDate).getFullYear() + index;
+          return date.getFullYear() === targetYear;
+        }
+        
+        return false;
+      }).length;
+      
+      return { month: label, count };
     });
+  }, [generateDynamicLabels, vacinacoesNoPeriodo, reportType, selectedMonth, startDate, endDate]);
 
-    return { 
-      month, 
-      lucro: parseFloat(profit.toFixed(2)), 
-      perda: parseFloat(loss.toFixed(2)) 
-    };
-  });
+  const profitLossByMonth = useMemo(() => {
+    return generateDynamicLabels.map((label, index) => {
+      const monthVaccinations = vacinacoesNoPeriodo.filter(v => {
+        const date = new Date(v.applicationDate);
+        
+        // Modo ANUAL: filtrar por mês
+        if (reportType === 'yearly') {
+          return date.getMonth() === index;
+        }
+        
+        // Modo MENSAL: filtrar por dia do mês
+        if (reportType === 'monthly' && selectedMonth !== 'all') {
+          return date.getDate() === index + 1;
+        }
+        
+        // Modo PERÍODO PERSONALIZADO
+        if (reportType === 'custom' && startDate && endDate) {
+          const diffDays = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays <= 31) {
+            const targetDate = new Date(startDate);
+            targetDate.setDate(targetDate.getDate() + index);
+            return date.getDate() === targetDate.getDate() && 
+                   date.getMonth() === targetDate.getMonth();
+          }
+          
+          if (diffDays <= 365) {
+            const targetDate = new Date(startDate);
+            targetDate.setMonth(targetDate.getMonth() + index);
+            return date.getMonth() === targetDate.getMonth() && 
+                   date.getFullYear() === targetDate.getFullYear();
+          }
+          
+          const targetYear = new Date(startDate).getFullYear() + index;
+          return date.getFullYear() === targetYear;
+        }
+        
+        return false;
+      });
+
+      let profit = 0;
+      let loss = 0;
+
+      monthVaccinations.forEach(vaccination => {
+        const batch = batches.find(b => b.id === vaccination.batchId);
+        if (batch && batch.purchasePrice && batch.salePrice) {
+          const margem = batch.salePrice - batch.purchasePrice;
+          
+          if (margem > 0) {
+            profit += margem;
+          } else {
+            loss += Math.abs(margem);
+          }
+        }
+      });
+
+      return { 
+        month: label, 
+        lucro: parseFloat(profit.toFixed(2)), 
+        perda: parseFloat(loss.toFixed(2)) 
+      };
+    });
+  }, [generateDynamicLabels, vacinacoesNoPeriodo, reportType, selectedMonth, startDate, endDate, batches]);
 
   const vacinasPorTipo = vaccines.map(vaccine => {
     const count = vacinacoesNoPeriodo.filter(v => {
@@ -300,17 +466,46 @@ export const Relatorios: React.FC = () => {
     fill: COLORS[index % COLORS.length],
   })).filter(f => f.quantidade > 0);
 
-  const aplicacoesAcumuladas = monthNames.map((month, index) => {
-    const aplicacoesAteOMes = vacinacoesNoPeriodo.filter(v => {
-      const date = new Date(v.applicationDate);
-      return date.getMonth() <= index;
-    }).length;
-    
-    return {
-      month,
-      acumulado: aplicacoesAteOMes,
-    };
-  });
+  const aplicacoesAcumuladas = useMemo(() => {
+    let cumulative = 0;
+    return generateDynamicLabels.map((label, index) => {
+      const periodVaccinations = vacinacoesNoPeriodo.filter(v => {
+        const date = new Date(v.applicationDate);
+        
+        if (reportType === 'yearly') {
+          return date.getMonth() <= index;
+        }
+        
+        if (reportType === 'monthly' && selectedMonth !== 'all') {
+          return date.getDate() <= index + 1;
+        }
+        
+        if (reportType === 'custom' && startDate && endDate) {
+          const diffDays = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays <= 31) {
+            const targetDate = new Date(startDate);
+            targetDate.setDate(targetDate.getDate() + index);
+            return date <= targetDate;
+          }
+          
+          if (diffDays <= 365) {
+            const targetDate = new Date(startDate);
+            targetDate.setMonth(targetDate.getMonth() + index);
+            return date <= targetDate;
+          }
+          
+          const targetYear = new Date(startDate).getFullYear() + index;
+          return date.getFullYear() <= targetYear;
+        }
+        
+        return false;
+      });
+      
+      cumulative = periodVaccinations.length;
+      return { month: label, acumulado: cumulative };
+    });
+  }, [generateDynamicLabels, vacinacoesNoPeriodo, reportType, selectedMonth, startDate, endDate]);
 
   const top5Lucro = vaccines.map(vaccine => {
     const aplicacoesVacina = vacinacoesNoPeriodo.filter(v => {
@@ -485,53 +680,86 @@ export const Relatorios: React.FC = () => {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Tipo de Relatório</label>
-              <Select value={reportType} onValueChange={setReportType}>
+              <Select value={reportType} onValueChange={(value) => {
+                setReportType(value);
+                if (value !== 'custom') {
+                  setStartDate('');
+                  setEndDate('');
+                }
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="yearly">Anual</SelectItem>
                   <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="custom">Período Personalizado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">Ano</label>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableYears.map(year => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {reportType === 'custom' ? (
+              <>
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-2 block">Data Início</label>
+                  <Input 
+                    type="date" 
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-2 block">Data Fim</label>
+                  <Input 
+                    type="date" 
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate}
+                    className="w-full"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-2 block">Ano</label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableYears.map(year => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {reportType === 'monthly' && (
-              <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">Mês</label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os meses</SelectItem>
-                    {monthNames.map((month, index) => (
-                      <SelectItem key={index} value={index.toString()}>
-                        {month}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                {reportType === 'monthly' && (
+                  <div className="flex-1">
+                    <label className="text-sm font-medium mb-2 block">Mês</label>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os meses</SelectItem>
+                        {monthNames.map((month, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="flex-1">
@@ -738,7 +966,7 @@ export const Relatorios: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="card-shadow">
+        <Card className="card-shadow md:col-span-2">
           <CardHeader>
             <CardTitle>📈 Acumulado de Aplicações</CardTitle>
             <CardDescription>Crescimento acumulado ao longo do ano</CardDescription>
