@@ -763,7 +763,9 @@ export const Relatorios: React.FC = () => {
             </ChartContainer>
           </CardContent>
         </Card>
+      </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="card-shadow">
           <CardHeader>
             <CardTitle>💎 Top 5 Vacinas por Lucro</CardTitle>
@@ -791,9 +793,7 @@ export const Relatorios: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="card-shadow">
           <CardHeader>
             <CardTitle>📉 Top 5 Vacinas por Perda</CardTitle>
