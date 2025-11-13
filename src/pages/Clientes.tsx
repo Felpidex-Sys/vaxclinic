@@ -225,7 +225,7 @@ export const Clientes: React.FC = () => {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="card-shadow">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -247,6 +247,23 @@ export const Clientes: React.FC = () => {
                   {clients.filter(c => calculateAge(c.dateOfBirth) >= 60).length}
                 </p>
                 <p className="text-sm text-muted-foreground">Terceira Idade</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="card-shadow">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-orange-600" />
+              <div>
+                <p className="text-2xl font-bold text-orange-600">
+                  {clients.filter(c => {
+                    const age = calculateAge(c.dateOfBirth);
+                    return age >= 18 && age < 60;
+                  }).length}
+                </p>
+                <p className="text-sm text-muted-foreground">Adultos</p>
               </div>
             </div>
           </CardContent>
