@@ -142,7 +142,7 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
           dataaplicacao: dataHoraAtual,
           dose: formData.doseNumber,
           observacoes: formData.notes || null,
-          precocompra: loteData.precocompra,
+          precocompra: custoUnitario,
           precovenda: loteData.precovenda,
         });
 
