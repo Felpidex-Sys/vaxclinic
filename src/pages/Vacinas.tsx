@@ -813,16 +813,41 @@ export const Vacinas: React.FC = () => {
             setShowBatchForm(true);
           }}
           onEditBatch={async (batch) => {
-            const { data, error } = await supabase
-              .from('lote')
-              .select('*')
-              .eq('numlote', parseInt(batch.id))
-              .single();
+            try {
+              console.log('Editando lote:', batch.id, batch.batchNumber);
+              
+              // Validar que o ID é um número válido
+              const numLote = parseInt(batch.id);
+              if (isNaN(numLote)) {
+                throw new Error(`ID do lote inválido: ${batch.id}`);
+              }
+              
+              const { data, error } = await supabase
+                .from('lote')
+                .select('*')
+                .eq('numlote', numLote)
+                .single();
 
-            if (!error && data) {
+              if (error) {
+                console.error('Erro ao buscar lote:', error);
+                throw error;
+              }
+              
+              if (!data) {
+                throw new Error(`Lote ${batch.batchNumber} não encontrado no banco de dados`);
+              }
+
+              console.log('Lote encontrado:', data);
               setEditingBatch(data);
               setShowBatchManagement(false);
               setShowBatchForm(true);
+            } catch (error: any) {
+              console.error('Erro ao editar lote:', error);
+              toast({
+                title: "Erro ao editar lote",
+                description: error.message || "Não foi possível carregar os dados do lote.",
+                variant: "destructive",
+              });
             }
           }}
           onDeleteBatch={(batchId) => {
