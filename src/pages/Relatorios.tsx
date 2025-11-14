@@ -121,8 +121,8 @@ export const Relatorios: React.FC = () => {
         email: c.email || '',
         address: '',
         allergies: c.alergias || '',
-        status: c.status,
         observations: c.observacoes || '',
+        createdAt: new Date().toISOString(),
       }));
 
       const mappedVaccines: Vaccine[] = (vaccinesData.data || []).map(v => ({
@@ -130,36 +130,41 @@ export const Relatorios: React.FC = () => {
         name: v.nome,
         manufacturer: v.fabricante || '',
         description: v.descricao || '',
-        category: v.categoria || 'OUTRA',
+        targetDisease: v.descricao || v.nome,
         dosesRequired: v.quantidadedoses || 1,
-        intervalBetweenDoses: v.intervalodoses || 0,
-        status: v.status,
+        createdAt: new Date().toISOString(),
       }));
 
       const mappedBatches: VaccineBatch[] = (batchesData.data || []).map(b => ({
         id: b.numlote.toString(),
         vaccineId: b.vacina_idvacina.toString(),
-        batchCode: b.codigolote,
+        batchNumber: b.codigolote,
         quantity: b.quantidadeinicial,
-        availableQuantity: b.quantidadedisponivel,
+        remainingQuantity: b.quantidadedisponivel,
+        manufacturingDate: new Date(new Date(b.datavalidade).setFullYear(new Date(b.datavalidade).getFullYear() - 2)).toISOString().split('T')[0],
         expirationDate: b.datavalidade,
         purchasePrice: b.precocompra,
         salePrice: b.precovenda,
+        createdAt: new Date().toISOString(),
       }));
 
-      const mappedVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map(a => ({
-        id: a.idaplicacao.toString(),
-        clientId: a.cliente_cpf,
-        appliedBy: a.funcionario_idfuncionario.toString(),
-        batchId: a.lote_numlote?.toString() || '',
-        applicationDate: a.dataaplicacao,
-        dose: a.dose || 1,
-        nextDose: '',
-        adverseReactions: a.reacoesadversas || '',
-        observations: a.observacoes || '',
-        precovenda: a.precovenda || 0,
-        precocompra: a.precocompra || 0,
-      }));
+      const mappedVaccinations: VaccinationRecord[] = (aplicacoesData.data || []).map(a => {
+        const batch = batchesData.data?.find(b => b.numlote === a.lote_numlote);
+        return {
+          id: a.idaplicacao.toString(),
+          clientId: a.cliente_cpf,
+          vaccineId: batch?.vacina_idvacina.toString() || '',
+          appliedBy: a.funcionario_idfuncionario.toString(),
+          batchId: a.lote_numlote?.toString() || '',
+          applicationDate: a.dataaplicacao,
+          doseNumber: a.dose || 1,
+          nextDueDate: '',
+          observations: a.observacoes || '',
+          createdAt: a.dataaplicacao,
+          precovenda: a.precovenda || 0,
+          precocompra: a.precocompra || 0,
+        };
+      });
 
       const mappedAgendamentos = (agendamentosData.data || []).map(a => ({
         id: a.idagendamento,
@@ -307,7 +312,7 @@ export const Relatorios: React.FC = () => {
     a.status === 'AGENDADO' && filterByPeriod(a.scheduledDate)
   );
 
-  const vacinasDisponiveis = batches.reduce((sum, b) => sum + b.availableQuantity, 0);
+  const vacinasDisponiveis = batches.reduce((sum, b) => sum + b.remainingQuantity, 0);
   const vacinasAgendadas = agendamentosNoPeriodo.length;
   const vacinasAplicadas = vacinacoesNoPeriodo.length;
   
