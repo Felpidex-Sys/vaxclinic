@@ -285,7 +285,7 @@ export const Agendamentos: React.FC = () => {
           agendamento_idagendamento: confirmingAgendamento.idAgendamento,
           lote_numlote: confirmingAgendamento.Lote_numLote,
           observacoes: confirmingAgendamento.observacoes,
-          precocompra: loteData.precocompra,
+          precocompra: custoUnitario,
           precovenda: loteData.precovenda,
         });
 
