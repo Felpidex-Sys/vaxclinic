@@ -877,7 +877,7 @@ export const Relatorios: React.FC = () => {
                   <SelectItem value="all">Todas as vacinas</SelectItem>
                   {vaccines.map(vaccine => (
                     <SelectItem key={vaccine.id} value={vaccine.id}>
-                      {vaccine.name}
+                      {vaccine.name}{vaccine.manufacturer ? ` - ${vaccine.manufacturer}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1418,7 +1418,7 @@ export const Relatorios: React.FC = () => {
                   <SelectContent>
                     {vaccines.map(vaccine => (
                       <SelectItem key={vaccine.id} value={vaccine.id}>
-                        {vaccine.name}
+                        {vaccine.name}{vaccine.manufacturer ? ` - ${vaccine.manufacturer}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1438,7 +1438,7 @@ export const Relatorios: React.FC = () => {
                   <SelectContent>
                     {vaccines.map(vaccine => (
                       <SelectItem key={vaccine.id} value={vaccine.id}>
-                        {vaccine.name}
+                        {vaccine.name}{vaccine.manufacturer ? ` - ${vaccine.manufacturer}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>

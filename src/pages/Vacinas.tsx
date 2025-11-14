@@ -865,7 +865,7 @@ export const Vacinas: React.FC = () => {
             setShowBatchManagement(true);
           }
         }}
-        vaccines={vaccines.map(v => ({ id: v.id, name: v.name }))}
+        vaccines={vaccines.map(v => ({ id: v.id, name: v.name, manufacturer: v.manufacturer }))}
         preselectedVaccineId={selectedVaccine?.id}
         batch={editingBatch}
         onSave={handleSaveBatch}

@@ -34,7 +34,7 @@ type BatchFormData = z.infer<typeof batchSchema>;
 interface BatchFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  vaccines: Array<{ id: string; name: string }>;
+  vaccines: Array<{ id: string; name: string; manufacturer?: string }>;
   preselectedVaccineId?: string;
   batch?: {
     numlote: number;
@@ -121,7 +121,7 @@ export const BatchForm: React.FC<BatchFormProps> = ({
               <SelectContent>
                 {vaccines.map((vaccine) => (
                   <SelectItem key={vaccine.id} value={vaccine.id}>
-                    {vaccine.name}
+                    {vaccine.name}{vaccine.manufacturer ? ` - ${vaccine.manufacturer}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
