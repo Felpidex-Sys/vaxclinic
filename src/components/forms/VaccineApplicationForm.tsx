@@ -122,11 +122,14 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
       // Buscar os preços atuais do lote selecionado
       const { data: loteData, error: loteError } = await supabase
         .from('lote')
-        .select('precocompra, precovenda')
+        .select('precocompra, precovenda, quantidadeinicial')
         .eq('numlote', parseInt(formData.batchId))
         .single();
 
       if (loteError) throw loteError;
+
+      // Calcular custo unitário por dose
+      const custoUnitario = loteData.precocompra / loteData.quantidadeinicial;
       
       // Primeiro, salvar a aplicação no banco com os preços históricos
       const { error: aplicacaoError } = await supabase

@@ -266,11 +266,14 @@ export const Agendamentos: React.FC = () => {
       // Buscar os preços do lote antes de criar a aplicação
       const { data: loteData, error: loteError } = await supabase
         .from('lote')
-        .select('precocompra, precovenda')
+        .select('precocompra, precovenda, quantidadeinicial')
         .eq('numlote', confirmingAgendamento.Lote_numLote)
         .single();
 
       if (loteError) throw loteError;
+
+      // Calcular custo unitário por dose
+      const custoUnitario = loteData.precocompra / loteData.quantidadeinicial;
       
       // Criar registro de aplicação (trigger do banco atualiza status para REALIZADO automaticamente)
       const { error: aplicacaoError } = await supabase
