@@ -85,6 +85,27 @@ export type Database = {
             referencedRelation: "lote"
             referencedColumns: ["numlote"]
           },
+          {
+            foreignKeyName: "fk_agendamento_cliente"
+            columns: ["cliente_cpf"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["cpf"]
+          },
+          {
+            foreignKeyName: "fk_agendamento_funcionario"
+            columns: ["funcionario_idfuncionario"]
+            isOneToOne: false
+            referencedRelation: "funcionario"
+            referencedColumns: ["idfuncionario"]
+          },
+          {
+            foreignKeyName: "fk_agendamento_lote"
+            columns: ["lote_numlote"]
+            isOneToOne: false
+            referencedRelation: "lote"
+            referencedColumns: ["numlote"]
+          },
         ]
       }
       aplicacao: {
@@ -97,6 +118,8 @@ export type Database = {
           idaplicacao: number
           lote_numlote: number | null
           observacoes: string | null
+          precocompra: number
+          precovenda: number
           reacoesadversas: string | null
         }
         Insert: {
@@ -108,6 +131,8 @@ export type Database = {
           idaplicacao?: number
           lote_numlote?: number | null
           observacoes?: string | null
+          precocompra?: number
+          precovenda?: number
           reacoesadversas?: string | null
         }
         Update: {
@@ -119,6 +144,8 @@ export type Database = {
           idaplicacao?: number
           lote_numlote?: number | null
           observacoes?: string | null
+          precocompra?: number
+          precovenda?: number
           reacoesadversas?: string | null
         }
         Relationships: [
@@ -145,6 +172,34 @@ export type Database = {
           },
           {
             foreignKeyName: "aplicacao_lote_numlote_fkey"
+            columns: ["lote_numlote"]
+            isOneToOne: false
+            referencedRelation: "lote"
+            referencedColumns: ["numlote"]
+          },
+          {
+            foreignKeyName: "fk_aplicacao_agendamento"
+            columns: ["agendamento_idagendamento"]
+            isOneToOne: false
+            referencedRelation: "agendamento"
+            referencedColumns: ["idagendamento"]
+          },
+          {
+            foreignKeyName: "fk_aplicacao_cliente"
+            columns: ["cliente_cpf"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["cpf"]
+          },
+          {
+            foreignKeyName: "fk_aplicacao_funcionario"
+            columns: ["funcionario_idfuncionario"]
+            isOneToOne: false
+            referencedRelation: "funcionario"
+            referencedColumns: ["idfuncionario"]
+          },
+          {
+            foreignKeyName: "fk_aplicacao_lote"
             columns: ["lote_numlote"]
             isOneToOne: false
             referencedRelation: "lote"
@@ -307,6 +362,13 @@ export type Database = {
           vacina_idvacina?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_lote_vacina"
+            columns: ["vacina_idvacina"]
+            isOneToOne: false
+            referencedRelation: "vacina"
+            referencedColumns: ["idvacina"]
+          },
           {
             foreignKeyName: "lote_vacina_idvacina_fkey"
             columns: ["vacina_idvacina"]

@@ -97,7 +97,11 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
       return;
     }
     
-    // Validar se a data da próxima dose é futura
+    // Buscar dados da vacina para verificar intervalo entre doses
+    const selectedVaccine = vaccines.find(v => v.id === formData.vaccineId);
+    const intervaloDoses = selectedVaccine?.dosesRequired > 1 ? (selectedVaccine as any).intervalodoses : 0;
+
+    // Validar se a data da próxima dose é futura E respeita o intervalo
     if (formData.nextDueDate) {
       const nextDate = new Date(formData.nextDueDate);
       const today = getBrasiliaDate();
@@ -110,6 +114,21 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
           variant: "default",
         });
         return;
+      }
+      
+      // Validar intervalo mínimo entre doses
+      if (intervaloDoses && intervaloDoses > 0) {
+        const dataMinima = new Date(today);
+        dataMinima.setDate(dataMinima.getDate() + intervaloDoses);
+        
+        if (nextDate < dataMinima) {
+          toast({
+            title: "⚠ Intervalo inválido",
+            description: `Esta vacina requer um intervalo mínimo de ${intervaloDoses} dias entre as doses. A próxima dose deve ser agendada a partir de ${dataMinima.toLocaleDateString('pt-BR')}.`,
+            variant: "default",
+          });
+          return;
+        }
       }
     }
     
@@ -378,19 +397,37 @@ export const VaccineApplicationForm: React.FC<VaccineApplicationFormProps> = ({
             </div>
             
               <div>
-                <Label htmlFor="nextDueDate" className="flex items-center gap-2">
-                  Próxima Dose (opcional)
-                  <span className="text-xs text-muted-foreground">
-                    📅 Se informado, um agendamento será criado automaticamente
-                  </span>
-                </Label>
-                <Input
-                  id="nextDueDate"
-                  type="date"
-                  value={formData.nextDueDate}
-                  onChange={(e) => setFormData({ ...formData, nextDueDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                />
+            <Label htmlFor="nextDueDate" className="flex items-center gap-2">
+              Próxima Dose (opcional)
+              <span className="text-xs text-muted-foreground">
+                {(() => {
+                  const selectedVaccine = vaccines.find(v => v.id === formData.vaccineId);
+                  const intervaloDoses = selectedVaccine?.dosesRequired > 1 ? (selectedVaccine as any).intervalodoses : 0;
+                  return intervaloDoses > 0 
+                    ? `📅 Intervalo mínimo: ${intervaloDoses} dias`
+                    : 'Se informado, um agendamento será criado automaticamente';
+                })()}
+              </span>
+            </Label>
+            <Input
+              id="nextDueDate"
+              type="date"
+              value={formData.nextDueDate}
+              onChange={(e) => setFormData({ ...formData, nextDueDate: e.target.value })}
+              min={(() => {
+                const selectedVaccine = vaccines.find(v => v.id === formData.vaccineId);
+                const intervaloDoses = selectedVaccine?.dosesRequired > 1 ? (selectedVaccine as any).intervalodoses : 0;
+                
+                if (intervaloDoses && intervaloDoses > 0) {
+                  const today = new Date();
+                  today.setDate(today.getDate() + intervaloDoses);
+                  return today.toISOString().split('T')[0];
+                }
+                
+                return new Date().toISOString().split('T')[0];
+              })()}
+              disabled={!formData.vaccineId}
+            />
               </div>
           </div>
           

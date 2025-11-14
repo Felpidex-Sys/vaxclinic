@@ -72,7 +72,7 @@ export const Historico: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('vacina')
-        .select('idvacina, nome')
+        .select('idvacina, nome, fabricante')
         .eq('status', 'ATIVA')
         .order('nome');
 

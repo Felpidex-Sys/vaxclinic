@@ -209,7 +209,7 @@ export const AgendamentoForm: React.FC<AgendamentoFormProps> = ({
                 <SelectContent>
                   {vaccines.map((vac) => (
                     <SelectItem key={vac.idVacina} value={vac.idVacina.toString()}>
-                      {vac.nome}
+                      {vac.nome}{vac.fabricante ? ` - ${vac.fabricante}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

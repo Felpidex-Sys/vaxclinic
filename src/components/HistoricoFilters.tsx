@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 interface Vacina {
   idvacina: number;
   nome: string;
+  fabricante?: string | null;
 }
 
 interface HistoricoFiltersProps {
@@ -95,7 +96,7 @@ export const HistoricoFilters: React.FC<HistoricoFiltersProps> = ({
                   <SelectItem value="all">Todas as vacinas</SelectItem>
                   {vacinas.map((vacina) => (
                     <SelectItem key={vacina.idvacina} value={vacina.nome}>
-                      {vacina.nome}
+                      {vacina.nome}{vacina.fabricante ? ` - ${vacina.fabricante}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
