@@ -53,7 +53,7 @@ const monthNames = [...Array(12)].map((_, i) => format(new Date(2000, i), 'MMM',
 
 type ComparisonPeriodType = 'none' | 'previous' | 'lastYear';
 type ReportType = 'yearly' | 'monthly' | 'custom';
-type DashboardContext = 'general' | 'employee' | 'vaccine' | 'client';
+type DashboardContext = 'general' | 'employee' | 'vaccine' | 'client' | 'comparison'; // Novo contexto
 
 type DateRange = {
   start: Date;
@@ -175,7 +175,7 @@ export const Relatorios: React.FC = () => {
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [vaccinations, setVaccinations] = useState<VaccinationRecord[]>([]);
   const [batches, setBatches] = useState<VaccineBatch[]>([]);
-  const [agendamentos, setAgendamentos] = useState<any[]>([]); // 👈 **** A LINHA QUE FALTAVA ****
+  const [agendamentos, setAgendamentos] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -193,6 +193,10 @@ export const Relatorios: React.FC = () => {
   
   const [comparisonType, setComparisonType] = useState<ComparisonPeriodType>('none');
 
+  // Novos estados para Comparação de Vacinas
+  const [compareVaccine1, setCompareVaccine1] = useState<string>('all');
+  const [compareVaccine2, setCompareVaccine2] = useState<string>('all');
+
   // --- Carregamento de Dados ---
   useEffect(() => {
     if (!user) return; // Espera o usuário estar autenticado
@@ -200,7 +204,6 @@ export const Relatorios: React.FC = () => {
     fetchData();
   }, [user]); // Dispara quando o usuário for carregado
 
-  // Usando a versão "Robusta" do fetchData que havíamos discutido
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -286,7 +289,7 @@ export const Relatorios: React.FC = () => {
       setVaccines(mappedVaccines);
       setVaccinations(mappedVaccinations);
       setBatches(mappedBatches);
-      setAgendamentos(agendamentosData.data || []); // Agora o setAgendamentos existe
+      setAgendamentos(agendamentosData.data || []); 
       setEmployees(mappedEmployees);
 
     } catch (error: any) {
@@ -367,31 +370,37 @@ export const Relatorios: React.FC = () => {
 
   // VACCINATIONS é filtrado por PERÍODO e ENTIDADE
   const mainVaccinations = useMemo(() => {
+    // Se estivermos em modo de comparação, não filtre por vacina aqui
+    const isComparing = compareVaccine1 !== 'all' && compareVaccine2 !== 'all';
+    
     return vaccinations.filter(v => {
       if (!filterByDateRange(v.applicationDate, mainPeriod)) return false;
 
-      const vaccineMatch = selectedVaccine === 'all' || 
+      const vaccineMatch = isComparing || selectedVaccine === 'all' || 
         batches.find(b => b.id === v.batchId)?.vaccineId === selectedVaccine;
       const employeeMatch = selectedEmployee === 'all' || v.appliedBy === selectedEmployee;
       const clientMatch = selectedClient === 'all' || v.clientId === selectedClient;
       
       return vaccineMatch && employeeMatch && clientMatch;
     });
-  }, [vaccinations, mainPeriod, selectedVaccine, selectedEmployee, selectedClient, batches]);
+  }, [vaccinations, mainPeriod, selectedVaccine, selectedEmployee, selectedClient, batches, compareVaccine1, compareVaccine2]);
   
   // VACCINATIONS DE COMPARAÇÃO é filtrado por PERÍODO DE COMPARAÇÃO e ENTIDADE
   const compVaccinations = useMemo(() => {
+    // Se estivermos em modo de comparação, não filtre por vacina aqui
+    const isComparing = compareVaccine1 !== 'all' && compareVaccine2 !== 'all';
+
     return vaccinations.filter(v => {
       if (!filterByDateRange(v.applicationDate, comparisonPeriod)) return false;
 
-      const vaccineMatch = selectedVaccine === 'all' || 
+      const vaccineMatch = isComparing || selectedVaccine === 'all' || 
         batches.find(b => b.id === v.batchId)?.vaccineId === selectedVaccine;
       const employeeMatch = selectedEmployee === 'all' || v.appliedBy === selectedEmployee;
       const clientMatch = selectedClient === 'all' || v.clientId === selectedClient;
       
       return vaccineMatch && employeeMatch && clientMatch;
     });
-  }, [vaccinations, comparisonPeriod, selectedVaccine, selectedEmployee, selectedClient, batches]);
+  }, [vaccinations, comparisonPeriod, selectedVaccine, selectedEmployee, selectedClient, batches, compareVaccine1, compareVaccine2]);
 
 
   const calculateMetrics = (
@@ -441,11 +450,14 @@ export const Relatorios: React.FC = () => {
 
   // --- Lógica de Contexto do Dashboard ---
   const dashboardContext = useMemo((): DashboardContext => {
+    if (compareVaccine1 !== 'all' && compareVaccine2 !== 'all') {
+      return 'comparison';
+    }
     if (selectedEmployee !== 'all') return 'employee';
     if (selectedVaccine !== 'all') return 'vaccine';
     if (selectedClient !== 'all') return 'client';
     return 'general';
-  }, [selectedEmployee, selectedVaccine, selectedClient]);
+  }, [selectedEmployee, selectedVaccine, selectedClient, compareVaccine1, compareVaccine2]);
 
   // --- Dados para Gráfico de Evolução (Sempre filtrado por mainVaccinations) ---
   const evolutionData = useMemo(() => {
@@ -592,23 +604,45 @@ export const Relatorios: React.FC = () => {
     ].filter(d => d.valor > 0);
 
     // Top 5 Funcionários (baseado em mainVaccinations)
-    const funcionariosMap = new Map<string, { id: string; nome: string; lucro: number; aplicacoes: number }>();
+    const funcionariosMap = new Map<string, { id: string; nome: string; aplicacoes: number }>();
     mainVaccinations.forEach(v => {
       const funcionario = employees.find(e => e.id === v.appliedBy); if (!funcionario) return;
-      const margem = (v.precovenda || 0) - (v.precocompra || 0);
+      
       if (!funcionariosMap.has(funcionario.id)) {
-        funcionariosMap.set(funcionario.id, { id: funcionario.id, nome: funcionario.name, lucro: 0, aplicacoes: 0 });
+        funcionariosMap.set(funcionario.id, { id: funcionario.id, nome: funcionario.name, aplicacoes: 0 });
       }
       const stats = funcionariosMap.get(funcionario.id)!;
       stats.aplicacoes++;
-      if (margem > 0) stats.lucro += margem;
     });
-    const topFuncionarios = Array.from(funcionariosMap.values()).sort((a, b) => b.lucro - a.lucro).slice(0, 5);
+    const topFuncionarios = Array.from(funcionariosMap.values())
+      .sort((a, b) => b.aplicacoes - a.aplicacoes) // Ordenado por aplicações
+      .slice(0, 5);
+
+    // Top 5 Lotes (baseado em mainVaccinations)
+    const lotesMap = new Map<string, { id: string; nomeVacina: string; loteNumero: string; aplicacoes: number }>();
+    mainVaccinations.forEach(v => {
+      const batch = batches.find(b => b.id === v.batchId);
+      const vaccine = vaccines.find(vac => vac.id === batch?.vaccineId); 
+      if (!batch || !vaccine) return;
+
+      if (!lotesMap.has(batch.id)) {
+        lotesMap.set(batch.id, { 
+          id: batch.id, 
+          nomeVacina: vaccine.name, 
+          loteNumero: batch.batchNumber, 
+          aplicacoes: 0 
+        });
+      }
+      lotesMap.get(batch.id)!.aplicacoes++;
+    });
+    const topLotes = Array.from(lotesMap.values())
+      .sort((a, b) => b.aplicacoes - a.aplicacoes)
+      .slice(0, 5);
 
     return {
       inventory: { diasDeCobertura, taxaDesperdicioPercent, valorPerdaVencimento },
       crm: { topClientes, novosVsRecorrentesData },
-      performance: { topFuncionarios }
+      performance: { topFuncionarios, topLotes } // Retorna topLotes
     };
   }, [dashboardContext, batches, mainPeriod, mainMetrics, mainVaccinations, clients, vaccinations, employees]);
 
@@ -688,10 +722,56 @@ export const Relatorios: React.FC = () => {
     return { vacinasDistrib };
   }, [dashboardContext, mainVaccinations, batches, vaccines]);
 
+  // -> DADOS PARA VIEW DE COMPARAÇÃO
+  const comparisonData = useMemo(() => {
+    if (dashboardContext !== 'comparison' || !mainPeriod) return null;
+
+    // 1. Filtrar vacinações para a Vacina 1
+    const v1_vaccinations = vaccinations.filter(v => {
+      if (!filterByDateRange(v.applicationDate, mainPeriod)) return false;
+      const batch = batches.find(b => b.id === v.batchId);
+      return batch?.vaccineId === compareVaccine1;
+    });
+
+    // 2. Filtrar vacinações para a Vacina 2
+    const v2_vaccinations = vaccinations.filter(v => {
+      if (!filterByDateRange(v.applicationDate, mainPeriod)) return false;
+      const batch = batches.find(b => b.id === v.batchId);
+      return batch?.vaccineId === compareVaccine2;
+    });
+
+    // 3. Calcular métricas para cada uma
+    const metricsV1 = calculateMetrics(v1_vaccinations, batches, mainPeriod);
+    const metricsV2 = calculateMetrics(v2_vaccinations, batches, mainPeriod);
+
+    const v1_name = vaccines.find(v => v.id === compareVaccine1)?.name || 'Vacina 1';
+    const v2_name = vaccines.find(v => v.id === compareVaccine2)?.name || 'Vacina 2';
+
+    return {
+      v1: {
+        name: v1_name,
+        metrics: metricsV1
+      },
+      v2: {
+        name: v2_name,
+        metrics: metricsV2
+      },
+      // Dados para gráfico de barras
+      chartData: [
+        { metric: 'Aplicações', [v1_name]: metricsV1.totalAplicacoes, [v2_name]: metricsV2.totalAplicacoes },
+        { metric: 'Receita Bruta', [v1_name]: metricsV1.receitaBruta, [v2_name]: metricsV2.receitaBruta },
+        { metric: 'Lucro Líquido', [v1_name]: metricsV1.lucroTotal, [v2_name]: metricsV2.lucroTotal },
+        { metric: 'Ticket Médio', [v1_name]: metricsV1.ticketMedio, [v2_name]: metricsV2.ticketMedio },
+      ]
+    };
+  }, [dashboardContext, mainPeriod, vaccinations, batches, vaccines, compareVaccine1, compareVaccine2]);
+
 
   // --- Título Dinâmico ---
   const dynamicHeader = useMemo(() => {
     switch(dashboardContext) {
+      case 'comparison':
+        return `Comparação: ${vaccines.find(v => v.id === compareVaccine1)?.name || 'V1'} vs. ${vaccines.find(v => v.id === compareVaccine2)?.name || 'V2'}`;
       case 'employee':
         return `Análise de Performance: ${employees.find(e => e.id === selectedEmployee)?.name || ''}`;
       case 'vaccine':
@@ -702,7 +782,7 @@ export const Relatorios: React.FC = () => {
       default:
         return 'Dashboard de Negócios';
     }
-  }, [dashboardContext, selectedEmployee, selectedVaccine, selectedClient, employees, vaccines, clients]);
+  }, [dashboardContext, selectedEmployee, selectedVaccine, selectedClient, compareVaccine1, compareVaccine2, employees, vaccines, clients]);
 
   // --- Funções de Renderização dos Dashboards ---
 
@@ -757,10 +837,11 @@ export const Relatorios: React.FC = () => {
         </Card>
       </div>
 
-      {/* Bloco de Rankings e CRM */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Bloco de Rankings e CRM (AGORA 2x2) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Card de Funcionários Modificado */}
         <Card className="lg:col-span-1">
-          <CardHeader><CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" />Top 5 Funcionários (Lucro)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" />Top 5 Funcionários (Aplicações)</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-3">
               {generalData?.performance.topFuncionarios.length > 0 ? generalData.performance.topFuncionarios.map((func, index) => (
@@ -770,10 +851,11 @@ export const Relatorios: React.FC = () => {
                       <Badge variant={index === 0 ? "default" : "secondary"}>#{index + 1}</Badge>
                       <div>
                         <p className="font-medium">{func.nome}</p>
-                        <p className="text-xs text-muted-foreground">{func.aplicacoes} aplicações</p>
                       </div>
                     </div>
-                    <div className="text-right"><p className="font-bold text-chart-2">R$ {func.lucro.toFixed(2)}</p></div>
+                    <div className="text-right">
+                      <p className="font-bold text-chart-1">{func.aplicacoes} aplicações</p>
+                    </div>
                   </div>
                 </div>
               )) : (<p className="text-muted-foreground text-center">Nenhum dado de funcionário.</p>)}
@@ -781,6 +863,32 @@ export const Relatorios: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* Card Novo de Lotes */}
+        <Card className="lg:col-span-1">
+          <CardHeader><CardTitle className="flex items-center gap-2"><PackageSearch className="h-5 w-5" />Top 5 Lotes (Aplicações)</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {generalData?.performance.topLotes.length > 0 ? generalData.performance.topLotes.map((lote, index) => (
+                <div key={lote.id} className="p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Badge variant={index === 0 ? "default" : "secondary"}>#{index + 1}</Badge>
+                      <div>
+                        <p className="font-medium">{lote.nomeVacina}</p>
+                        <p className="text-xs text-muted-foreground">Lote: {lote.loteNumero}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-chart-1">{lote.aplicacoes} aplicações</p>
+                    </div>
+                  </div>
+                </div>
+              )) : (<p className="text-muted-foreground text-center">Nenhum lote aplicado.</p>)}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card de Clientes (Inalterado) */}
         <Card className="lg:col-span-1">
           <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" />Top 10 Clientes (Gasto)</CardTitle></CardHeader>
           <CardContent>
@@ -803,6 +911,7 @@ export const Relatorios: React.FC = () => {
           </CardContent>
         </Card>
         
+        {/* Card de Aquisição (Inalterado) */}
         <Card className="lg:col-span-1">
           <CardHeader><CardTitle className="flex items-center gap-2"><UsersRound className="h-5 w-5" />Aquisição de Clientes</CardTitle></CardHeader>
           <CardContent>
@@ -1007,8 +1116,79 @@ export const Relatorios: React.FC = () => {
     </div>
   );
 
+  const renderComparisonView = () => (
+    <div className="space-y-6">
+      {/* Tabela de Comparação */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Comparação de Métricas</CardTitle>
+          <CardDescription>Análise lado a lado das vacinas selecionadas no período.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Métrica</TableHead>
+                <TableHead>{comparisonData?.v1.name}</TableHead>
+                <TableHead>{comparisonData?.v2.name}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium">Aplicações Totais</TableCell>
+                <TableCell>{comparisonData?.v1.metrics.totalAplicacoes}</TableCell>
+                <TableCell>{comparisonData?.v2.metrics.totalAplicacoes}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">Receita Bruta</TableCell>
+                <TableCell>{formatValue(comparisonData?.v1.metrics.receitaBruta || 0, 'R$')}</TableCell>
+                <TableCell>{formatValue(comparisonData?.v2.metrics.receitaBruta || 0, 'R$')}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">Lucro Líquido</TableCell>
+                <TableCell>{formatValue(comparisonData?.v1.metrics.lucroTotal || 0, 'R$')}</TableCell>
+                <TableCell>{formatValue(comparisonData?.v2.metrics.lucroTotal || 0, 'R$')}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">Ticket Médio</TableCell>
+                <TableCell>{formatValue(comparisonData?.v1.metrics.ticketMedio || 0, 'R$')}</TableCell>
+                <TableCell>{formatValue(comparisonData?.v2.metrics.ticketMedio || 0, 'R$')}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">Margem de Lucro</TableCell>
+                <TableCell>{formatValue(comparisonData?.v1.metrics.margemLucroPercent || 0, '%')}</TableCell>
+                <TableCell>{formatValue(comparisonData?.v2.metrics.margemLucroPercent || 0, '%')}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Gráfico de Comparação */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Gráfico Comparativo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={comparisonData?.chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="metric" fontSize={12} />
+              <YAxis />
+              <Tooltip formatter={(value: number) => typeof value === 'number' ? value.toLocaleString('pt-BR') : value} />
+              <Legend />
+              <Bar dataKey={comparisonData?.v1.name} fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={comparisonData?.v2.name} fill="hsl(var(--chart-4))" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   const renderDashboardContent = () => {
     switch (dashboardContext) {
+      case 'comparison': return renderComparisonView();
       case 'employee': return renderEmployeeView();
       case 'vaccine': return renderVaccineView();
       case 'client': return renderClientView();
@@ -1111,7 +1291,7 @@ export const Relatorios: React.FC = () => {
               <AccordionItem value="comparacao">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2">
-                    <History className="h-4 w-4" /> Comparação
+                    <History className="h-4 w-4" /> Comparação de Período
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-4">
@@ -1127,11 +1307,49 @@ export const Relatorios: React.FC = () => {
                 </AccordionContent>
               </AccordionItem>
               
+              {/* Comparar Vacinas */}
+              <AccordionItem value="vac_comparacao">
+                <AccordionTrigger>
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4" /> Comparar Vacinas
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-4">
+                  <Label>Vacina 1</Label>
+                  <Select value={compareVaccine1} onValueChange={(v) => {
+                    setCompareVaccine1(v);
+                    setSelectedEmployee('all');
+                    setSelectedClient('all');
+                    setSelectedVaccine('all');
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Selecione a Vacina 1" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Nenhuma</SelectItem>
+                      {vaccines.map(v => <SelectItem key={v.id} value={v.id} disabled={v.id === compareVaccine2}>{v.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+
+                  <Label>Vacina 2</Label>
+                  <Select value={compareVaccine2} onValueChange={(v) => {
+                    setCompareVaccine2(v);
+                    setSelectedEmployee('all');
+                    setSelectedClient('all');
+                    setSelectedVaccine('all');
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Selecione a Vacina 2" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Nenhuma</SelectItem>
+                      {vaccines.map(v => <SelectItem key={v.id} value={v.id} disabled={v.id === compareVaccine1}>{v.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </AccordionContent>
+              </AccordionItem>
+
               {/* Entidades */}
               <AccordionItem value="entidades">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" /> Entidades
+                    <Users className="h-4 w-4" /> Filtros de Entidade
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4 pt-4">
@@ -1140,6 +1358,8 @@ export const Relatorios: React.FC = () => {
                     setSelectedVaccine(v);
                     setSelectedEmployee('all');
                     setSelectedClient('all');
+                    setCompareVaccine1('all'); // Limpa comparação
+                    setCompareVaccine2('all'); // Limpa comparação
                   }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -1153,6 +1373,8 @@ export const Relatorios: React.FC = () => {
                     setSelectedEmployee(v);
                     setSelectedVaccine('all');
                     setSelectedClient('all');
+                    setCompareVaccine1('all'); // Limpa comparação
+                    setCompareVaccine2('all'); // Limpa comparação
                   }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -1166,6 +1388,8 @@ export const Relatorios: React.FC = () => {
                     setSelectedClient(v);
                     setSelectedVaccine('all');
                     setSelectedEmployee('all');
+                    setCompareVaccine1('all'); // Limpa comparação
+                    setCompareVaccine2('all'); // Limpa comparação
                   }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
